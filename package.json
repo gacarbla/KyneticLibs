@@ -1,8 +1,7 @@
 {
     "name": "@kyneticweb/libs",
-    "private": true,
-    "version": "1.0.0",
-    "description": "Monorepo de paquetes @kyneticweb/ usando npm workspaces",
+    "version": "1.0.1",
+    "description": "Kynetic Web Libraries Monorepo",
     "workspaces": [
         "packages/*"
     ],
