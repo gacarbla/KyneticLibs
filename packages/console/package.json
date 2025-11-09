@@ -1,0 +1,33 @@
+{
+    "name": "@kyneticweb/console",
+    "version": "0.1.4",
+    "keywords": [
+        "console",
+        "cli",
+        "interface",
+        "terminal",
+        "KyneticLibs",
+        "kyneticweb"
+    ],
+    "description": "Console Interface using Blessed",
+    "main": "dist/src/index.js",
+    "types": "dist/src/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "test": "echo \"No tests yet\""
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "blessed": "^0.1.81"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.0",
+        "@types/blessed": "^0.1.25"
+    }
+}
