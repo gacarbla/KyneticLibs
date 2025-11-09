@@ -1,0 +1,65 @@
+{
+    "units": {
+        "cero": 0,
+        "un": 1,
+        "dous": 2,
+        "tres": 3,
+        "catro": 4,
+        "cinco": 5,
+        "seis": 6,
+        "sete": 7,
+        "oito": 8,
+        "nove": 9,
+        "dez": 10,
+        "once": 11,
+        "doce": 12,
+        "trece": 13,
+        "catorce": 14,
+        "quince": 15,
+        "dezaseis": 16,
+        "dezasete": 17,
+        "dezaoito": 18,
+        "dezanove": 19
+    },
+    "tens": {
+        "vinte": 20,
+        "trinta": 30,
+        "corenta": 40,
+        "cincuenta": 50,
+        "sesenta": 60,
+        "setenta": 70,
+        "oitenta": 80,
+        "noventa": 90
+    },
+    "hundreds": {
+        "cen": 100,
+        "cento": 100,
+        "centos": 100,
+        "douscentos": 200,
+        "trescentos": 300,
+        "catrocentos": 400,
+        "cincocentos": 500,
+        "seiscentos": 600,
+        "setecentos": 700,
+        "oitocentos": 800,
+        "novecentos": 900
+    },
+    "thousands": {
+        "mil": 1000,
+        "dousmil": 2000,
+        "tresmil": 3000,
+        "catromil": 4000,
+        "cincomil": 5000,
+        "seismil": 6000,
+        "setemil": 7000,
+        "oitomil": 8000,
+        "novemil": 9000
+    },
+    "connectors": [
+        "e",
+        "con",
+        "coa",
+        "i",
+        "y"
+    ]
+}

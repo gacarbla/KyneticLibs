@@ -1,0 +1,11 @@
+{
+	"name": "Kynetic",
+	"version": 1.0,
+	"active": true,
+	"date": "2025-11-02T12:00:00Z",
+	"list": ["one", "two", "three"],
+	"object": {
+		"key1": "value1",
+		"key2": "value2"
+	}
+}
