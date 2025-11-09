@@ -1,17 +1,33 @@
 {
     "name": "@kyneticweb/libs",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Kynetic Web Libraries Monorepo",
     "workspaces": [
         "packages/*"
     ],
     "repository": {
         "type": "git",
-        "url": ""
+        "url": "https://github.com/gacarbla/KyneticLibs"
     },
-    "license": "MIT",
+    "license": "CUSTOM-NON-COMMERCIAL",
+
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
+    "publishConfig": {
+        "access": "public",
+        "tag": "beta"
+    },
+
     "scripts": {
         "build": "npm run build -ws",
-        "test": "npm test -ws"
+        "publish": "npm publish --access public && node ./publish-all.js"
     }
 }
