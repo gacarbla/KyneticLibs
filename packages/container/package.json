@@ -1,0 +1,22 @@
+{
+    "name": "@kyneticweb/container",
+    "version": "0.1.2",
+    "description": "Container",
+    "main": "dist/src/index.js",
+    "types": "dist/src/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "test": "echo \"No tests yet\""
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@types/node": "^24.10.0"
+    }
+}
