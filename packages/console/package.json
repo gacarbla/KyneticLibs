@@ -1,6 +1,8 @@
 {
-    "name": "@kyneticweb/console",
     "version": "0.1.4",
+
+    "name": "@kyneticweb/console",
+    "description": "Console Interface using Blessed.",
     "keywords": [
         "console",
         "cli",
@@ -9,20 +11,30 @@
         "KyneticLibs",
         "kyneticweb"
     ],
-    "description": "Console Interface using Blessed.",
+
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+
     "main": "dist/src/index.js",
     "types": "dist/src/index.d.ts",
-    "files": [
-        "dist"
-    ],
+    "files": [ "dist" ],
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
+    
+    "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "test": "echo \"No tests yet\""
+        "build": "tsc -p tsconfig.json"
     },
-    "license": "MIT",
     "publishConfig": {
-        "access": "public"
+        "access": "public",
+        "tag": "beta"
     },
+    
     "dependencies": {
         "blessed": "^0.1.81"
     },
