@@ -105,7 +105,7 @@ export class ConsoleManager {
 
     }
 
-    async enableUI() {
+    async enableUI(): Promise<this> {
         if (!ConsoleManager.blessedUILoaded) {
             try {
                 const mod = await import('./blessedUI.js');
@@ -113,13 +113,13 @@ export class ConsoleManager {
                 ConsoleManager.blessedUILoaded = true;
             } catch (e) {
                 this.warn('No se pudo cargar la interfaz blessedUI. ¿Está instalado blessed?');
-                return;
             }
         }
         if (ConsoleBlessedUI && !this.blessedUI) {
             this.blessedUI = new ConsoleBlessedUI(this.logFile);
             for (const log of this.logs) this.blessedUI.addLog(log);
         }
+        return this
     }
 
     private writeLog(type: ConsoleLogType, message: string) {
