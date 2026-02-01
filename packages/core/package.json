@@ -1,6 +1,6 @@
 {
     "name": "@kyneticweb/core",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Core Library",
     "bugs": {
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new",
@@ -14,7 +14,8 @@
     "author": "gacarbla <gacarbla@gacarbla.es> (https://gacarbla.es)",
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json"
+        "build": "tsc -p tsconfig.json",
+        "publish": "npm publish --access public"
     },
     "publishConfig": {
         "access": "public",

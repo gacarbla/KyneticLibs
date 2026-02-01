@@ -54,6 +54,10 @@ export class BasicContainer<T = any> {
     clear(): void {
         this.items.clear();
     }
+
+    getAll(): Map<string, T> {
+        return new Map(this.items);
+    }
 }
 
 export class StrictContainer<K extends KeyMap> {
@@ -82,6 +86,10 @@ export class StrictContainer<K extends KeyMap> {
 
     clear(): void {
         this.items.clear();
+    }
+
+    getAll(): Map<keyof K, K[keyof K]> {
+        return new Map(this.items);
     }
 }
 
@@ -119,6 +127,10 @@ export class DynamicContainer<K extends DynamicKeyTypes = {}> {
 
     clear(): void {
         this.items.clear();
+    }
+
+    getAll(): Map<string, unknown> {
+        return new Map(this.items);
     }
 }
 

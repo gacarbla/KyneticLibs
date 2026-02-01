@@ -1,5 +1,5 @@
 {
-    "version": "0.1.5",
+    "version": "0.1.6",
 
     "name": "@kyneticweb/console",
     "description": "Console Interface using Blessed.",
@@ -28,7 +28,8 @@
     
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json"
+        "build": "tsc -p tsconfig.json",
+        "publish": "npm publish --access public"
     },
     "publishConfig": {
         "access": "public",

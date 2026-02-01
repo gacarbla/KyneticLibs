@@ -1,32 +1,34 @@
 {
     "name": "@kyneticweb/parser",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Parser",
-    
     "bugs": {
         "email": "gacarbla@gacarbla.es",
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
     },
-
     "main": "dist/src/index.js",
     "types": "dist/src/index.d.ts",
-    "files": [ "dist" ],
+    "files": [
+        "dist"
+    ],
     "author": {
         "name": "gacarbla",
         "email": "gacarbla@gacarbla.es",
         "url": "https://gacarbla.es"
     },
-    
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json"
+        "build": "tsc -p tsconfig.json",
+        "publish": "npm publish --access public"
     },
     "publishConfig": {
         "access": "public",
         "tag": "beta"
     },
-
     "devDependencies": {
         "@types/node": "^24.10.0"
+    },
+    "dependencies": {
+        "js-yaml": "^4.1.0"
     }
 }

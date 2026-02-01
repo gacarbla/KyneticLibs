@@ -1,6 +1,6 @@
 {
     "name": "@kyneticweb/libs",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Kynetic Web Libraries Monorepo",
     "workspaces": [
         "packages/*"
@@ -28,6 +28,6 @@
 
     "scripts": {
         "build": "npm run build -ws",
-        "publish": "npm publish --access public && node ./publish-all.js"
+        "publish": "node ./publish-all.js && npm publish --access public"
     }
 }
