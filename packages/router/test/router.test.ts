@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { describe, expect, expectTypeOf, it } from "vitest";
-import { createContext, jsx, render, useContext, type Child } from "@kyneticweb/dom";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import { createContext, jsx, onCleanup, render, useContext, type Child } from "@kyneticweb/dom";
 import {
     buildPath,
     createHashStrategy,
@@ -223,6 +223,30 @@ describe("view and links", () => {
         await tick();
         await tick();
         expect(container.textContent).toBe("dark");
+    });
+
+    it("disposes the previous route view", async () => {
+        const cleanup = vi.fn();
+        function Page(props: { text: string }): Child {
+            onCleanup(cleanup);
+            return jsx("p", null, props.text);
+        }
+        const cleanupRoutes = {
+            home: { path: "/", component: (): Child => jsx(Page, { text: "home" }) },
+            about: { path: "/about", component: (): Child => jsx(Page, { text: "about" }) },
+        } as const;
+        const router = createRouter({ routes: cleanupRoutes, strategy: createMemoryStrategy("/") });
+        const container = document.createElement("div");
+
+        render(() => jsx(RouterProvider, { router }, () => jsx(RouterView, null)), container);
+        router.start();
+        await tick();
+        expect(container.textContent).toBe("home");
+
+        router.navigate("about");
+        await tick();
+        expect(container.textContent).toBe("about");
+        expect(cleanup).toHaveBeenCalledTimes(1);
     });
 
     it("navigates when a Link is clicked", () => {

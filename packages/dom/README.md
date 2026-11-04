@@ -164,6 +164,9 @@ nodes.
 A universal node kept from a server or hydration pass can be inserted later: `toNodes`
 materializes it into real DOM instead of stringifying it.
 
+Updating a dynamic slot replaces its previous content and disposes the components and
+effects it created, so repeated language switches or navigations never duplicate nodes.
+
 ## API
 
 | Export | Description |

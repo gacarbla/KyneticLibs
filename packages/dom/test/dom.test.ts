@@ -79,6 +79,30 @@ it("materializes universal nodes inserted later", () => {
     expect(container.innerHTML).toBe('<div><p class="stored">server text</p></div>');
 });
 
+it("disposes the effects of replaced dynamic content", async () => {
+    const cleanup = vi.fn();
+    const label = createSignal("first");
+    function Leaf(props: { text: string }): Child {
+        onCleanup(cleanup);
+        return jsx("span", null, props.text);
+    }
+
+    const { container } = mount(() =>
+        jsx("div", null, () => (label() === "first" ? "first" : jsx(Leaf, { text: label() }))),
+    );
+
+    label.set("second");
+    await tick();
+    expect(container.textContent).toBe("second");
+    expect(cleanup).not.toHaveBeenCalled();
+
+    label.set("third");
+    await tick();
+    expect(container.textContent).toBe("third");
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(container.querySelectorAll("span")).toHaveLength(1);
+});
+
 describe("reactivity", () => {
     it("updates dynamic text without re-rendering the component", async () => {
         const count = createSignal(0);

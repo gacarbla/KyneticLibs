@@ -44,6 +44,33 @@ describe("router hydration", () => {
         client.stop();
     });
 
+    it("replaces the view on every navigation", async () => {
+        const server = createRouter({ routes, strategy: createMemoryStrategy("/") });
+        server.start();
+        const container = document.createElement("div");
+        container.innerHTML = await renderToStringAsync(() =>
+            jsx(RouterProvider, { router: server }, () => jsx(RouterView, null)),
+        );
+        server.stop();
+
+        const client = createRouter({ routes, strategy: createMemoryStrategy("/") });
+        client.start();
+        hydrate(() => jsx(RouterProvider, { router: client }, () => jsx(RouterView, null)), container);
+
+        const visits: Array<[name: "home" | "about", text: string]> = [
+            ["about", "about"],
+            ["home", "home"],
+            ["about", "about"],
+        ];
+        for (const [name, text] of visits) {
+            client.navigate(name);
+            await tick();
+            expect(container.querySelectorAll("h1")).toHaveLength(1);
+            expect(container.querySelector("h1")?.textContent).toBe(text);
+        }
+        client.stop();
+    });
+
     it("adopts a preloaded lazy view and keeps its context", async () => {
         const Theme = createContext("light");
         const lazyRoutes = {

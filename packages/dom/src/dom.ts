@@ -1,4 +1,14 @@
-import { createEffect, createRoot, getOwner, onCleanup, type Dispose } from "@kyneticweb/reactive";
+import {
+    createEffect,
+    createOwner,
+    createRoot,
+    disposeOwner,
+    getOwner,
+    onCleanup,
+    runWithOwnerTracked,
+    type Dispose,
+    type Owner,
+} from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
 import { isVNode, type VNode } from "./vnode.js";
 import type { Child, Component, Props } from "./types.js";
@@ -454,20 +464,41 @@ const UNSET = Symbol("kynetic.unset");
 function createDynamicChild(parent: Node, read: () => Child): () => void {
     let current: Node[] = [];
     let placeholder: Node | null = null;
+    let owner: Owner | null = null;
+
+    onCleanup(() => {
+        if (owner !== null) {
+            disposeOwner(owner);
+            owner = null;
+        }
+    });
 
     return () => {
-        const value = resolveChild(read());
+        const reusingText = current.length === 1 && current[0]?.nodeType === Node.TEXT_NODE;
+
+        // Reuse the slot owner for in-place text updates; start a fresh scope
+        // only when the previous content could own effects.
+        let contentOwner: Owner;
+        if (reusingText && owner !== null) {
+            contentOwner = owner;
+        } else {
+            if (owner !== null) {
+                disposeOwner(owner);
+            }
+            contentOwner = createOwner();
+            owner = contentOwner;
+        }
+
+        const value = runWithOwnerTracked(contentOwner, () => resolveChild(read()));
         const isText = typeof value === "string" || typeof value === "number";
 
-        if (isText && current.length === 1) {
-            const node = current[0];
-            if (node !== undefined && node.nodeType === Node.TEXT_NODE) {
-                const text = String(value);
-                if ((node as Text).data !== text) {
-                    (node as Text).data = text;
-                }
-                return;
+        if (isText && reusingText) {
+            const node = current[0] as Text;
+            const text = String(value);
+            if (node.data !== text) {
+                node.data = text;
             }
+            return;
         }
 
         const first = current[0] ?? placeholder;
@@ -479,7 +510,9 @@ function createDynamicChild(parent: Node, read: () => Child): () => void {
             node.parentNode?.removeChild(node);
         }
 
-        const next: Node[] = isText ? [document.createTextNode(String(value))] : toNodes(value);
+        const next: Node[] = isText
+            ? [document.createTextNode(String(value))]
+            : runWithOwnerTracked(contentOwner, () => toNodes(value));
 
         if (next.length === 0) {
             if (placeholder === null) {
@@ -509,9 +542,17 @@ function renderDynamic(read: () => Child): Node {
     const anchor = document.createComment("kynetic");
     fragment.appendChild(anchor);
     let current: Node[] = [];
+    let owner = createOwner();
+
+    onCleanup(() => disposeOwner(owner));
 
     createEffect(() => {
-        const next = toNodes(read());
+        // Replace the previous content's owner before creating the new tree.
+        disposeOwner(owner);
+        owner = createOwner();
+        // Tracked: the slot must stay subscribed to the expression that
+        // produced this content, while the content belongs to its own owner.
+        const next = runWithOwnerTracked(owner, () => toNodes(read()));
         for (const node of current) {
             node.parentNode?.removeChild(node);
         }

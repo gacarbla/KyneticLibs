@@ -1,4 +1,12 @@
-import { createEffect, createRoot, onCleanup, runWithOwner, type Dispose } from "@kyneticweb/reactive";
+import {
+    createEffect,
+    createOwner,
+    createRoot,
+    disposeOwner,
+    onCleanup,
+    runWithOwner,
+    type Dispose,
+} from "@kyneticweb/reactive";
 import { isVNode, type VNode } from "./vnode.js";
 import { addEvent, render, setRenderMode, setStaticProp, toNodes } from "./dom.js";
 import type { Child, Props } from "./types.js";
@@ -85,24 +93,35 @@ function hydrateText(expected: string, cursor: Node | null): Node | null {
 
 /** Adopts a dynamic slot and updates it after the first client change. */
 function hydrateDynamic(read: () => unknown, parent: Node, cursor: Node | null): Node | null {
-    const start = cursor;
-    const after = hydrateValue(read(), parent, cursor);
+    const first = cursor;
+    let owner = createOwner();
+    const after = runWithOwner(owner, () => hydrateValue(read(), parent, cursor));
     const anchor = document.createComment("kynetic-hydrated");
     parent.insertBefore(anchor, after);
-    let first = true;
+    // An empty slot starts at the anchor (its range is empty); a non-empty one
+    // starts at its first adopted node. The start must move after every update,
+    // otherwise the next update would try to remove detached nodes.
+    let start: Node | null = after === first ? anchor : first;
+    let initial = true;
 
     createEffect(() => {
         read();
-        if (first) {
-            first = false;
+        if (initial) {
+            initial = false;
             return;
         }
+
+        disposeOwner(owner);
         removeBetween(parent, start, anchor);
-        for (const node of toNodes(read() as Child)) {
+        owner = createOwner();
+        const nodes = runWithOwner(owner, () => toNodes(read() as Child));
+        for (const node of nodes) {
             parent.insertBefore(node, anchor);
         }
+        start = nodes[0] ?? anchor;
     });
 
+    onCleanup(() => disposeOwner(owner));
     return anchor.nextSibling;
 }
 

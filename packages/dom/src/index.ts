@@ -4,6 +4,7 @@
  * Fine-grained DOM renderer with typed TSX, components and context.
  */
 
+export { resolveChild } from "./child.js";
 export { createPending, Fragment, isServerMode, isServerRendering, jsx, render, setServerMode } from "./dom.js";
 export { hydrate } from "./hydrate.js";
 export { isVNode } from "./vnode.js";

@@ -78,6 +78,9 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 - `renderToStringAsync(component)` collects the promises registered by `createPending` nodes,
   awaits them and renders again (up to 10 passes). The component behind a pending boundary
   must cache its result so the later pass is synchronous.
+- Dynamic slots own their content. Replacing one disposes the previous components and
+  effects, and the slot moves its range start to the new first node, so repeated updates
+  never duplicate nodes or leave detached effects running.
 
 ## Benchmark
 

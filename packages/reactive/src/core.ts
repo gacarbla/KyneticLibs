@@ -576,6 +576,22 @@ export function runWithOwner<T>(owner: Owner, fn: () => T): T {
     }
 }
 
+/**
+ * Runs `fn` under `owner` while keeping the running computation subscribed.
+ *
+ * @internal Used by dynamic slots: the content belongs to the slot owner, but
+ * the expression that produced it must still track its dependencies.
+ */
+export function runWithOwnerTracked<T>(owner: Owner, fn: () => T): T {
+    const previousOwner = currentOwner;
+    currentOwner = owner;
+    try {
+        return fn();
+    } finally {
+        currentOwner = previousOwner;
+    }
+}
+
 /** @internal Returns the owner of the current scope. */
 export function getOwner(): Owner | null {
     return currentOwner;

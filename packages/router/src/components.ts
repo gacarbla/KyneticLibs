@@ -5,9 +5,11 @@ import {
     createSignal,
     isServerRendering,
     jsx,
+    resolveChild,
     useContext,
     type Child,
 } from "@kyneticweb/dom";
+import { createOwner, disposeOwner, onCleanup, runWithOwner, type Owner } from "@kyneticweb/reactive";
 import type { Router } from "./router.js";
 import type { NavigateOptions, RouteDefinitions, RouteMap } from "./types.js";
 import { cachedView, loadView } from "./views.js";
@@ -77,47 +79,62 @@ export function RouterView(props: RouterViewProps = {}): Child {
         return renderServerView(router, props);
     }
 
-    // The signal holds a lazy value (factory or thunk) instead of eager markup,
-    // so deferred views are created inside the owner chain and keep context.
-    const view = createSignal<Child>(() => props.fallback ?? null);
+    const view = createSignal<Child>(null);
     const resolved = createSignal<{ name: string; component: () => Child } | null>(null);
+    let owner: Owner | null = null;
+
+    /** Mounts a view under a fresh owner and disposes the previous one. */
+    const show = (content: Child): void => {
+        if (owner !== null) {
+            disposeOwner(owner);
+        }
+        owner = createOwner();
+        view.set(runWithOwner(owner, () => resolveChild(content)));
+    };
+
+    onCleanup(() => {
+        if (owner !== null) {
+            disposeOwner(owner);
+            owner = null;
+        }
+    });
 
     createEffect(() => {
         const current = router.route();
         const ready = resolved();
 
         if (current === null) {
-            view.set(() => props.fallback ?? null);
+            show(props.fallback ?? null);
             return;
         }
 
         const definition = router.definitions[current.name as string];
         if (definition === undefined) {
-            view.set(() => props.fallback ?? null);
+            show(props.fallback ?? null);
             return;
         }
         if (definition.component !== undefined) {
-            view.set(definition.component);
+            show(definition.component);
             return;
         }
 
         const load = definition.load;
         if (load === undefined) {
-            view.set(() => props.fallback ?? null);
+            show(props.fallback ?? null);
             return;
         }
 
         const cached = cachedView(load);
         if (cached !== undefined) {
-            view.set(cached);
+            show(cached);
             return;
         }
         if (ready !== null && ready.name === current.name) {
-            view.set(ready.component);
+            show(ready.component);
             return;
         }
 
-        view.set(() => props.loading ?? null);
+        show(props.loading ?? null);
         const name = current.name as string;
         void loadView(load).then((component) => resolved.set({ name, component }));
     });

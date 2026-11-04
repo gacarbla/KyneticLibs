@@ -83,6 +83,51 @@ describe("hydrate", () => {
         expect(container.querySelector("button")).toBe(button);
     });
 
+    it("replaces a dynamic slot repeatedly without duplicating it", async () => {
+        const label = createSignal("a");
+        function Label(): Child {
+            return jsx("p", null, () => label());
+        }
+
+        const container = document.createElement("div");
+        container.innerHTML = renderToString(() => jsx(Label, null));
+        hydrate(() => jsx(Label, null), container);
+
+        label.set("b");
+        await tick();
+        expect(container.textContent).toBe("b");
+
+        label.set("c");
+        await tick();
+        expect(container.textContent).toBe("c");
+        expect(container.querySelectorAll("p")).toHaveLength(1);
+    });
+
+    it("fills and clears an empty slot without touching its siblings", async () => {
+        const error = createSignal<string | null>(null);
+        function Form(): Child {
+            return jsx("form", null, () => error(), jsx("button", null, "send"));
+        }
+
+        const container = document.createElement("div");
+        container.innerHTML = renderToString(() => jsx(Form, null));
+        hydrate(() => jsx(Form, null), container);
+        expect(container.textContent).toBe("send");
+
+        error.set("boom");
+        await tick();
+        expect(container.textContent).toBe("boomsend");
+
+        error.set(null);
+        await tick();
+        expect(container.textContent).toBe("send");
+        expect(container.querySelector("button")).not.toBeNull();
+
+        error.set("again");
+        await tick();
+        expect(container.textContent).toBe("againsend");
+    });
+
     it("falls back to a client render for collections", async () => {
         const items = createSignal([1, 2]);
         // Manual jsx() cannot infer the generic parameter of For; TSX does.

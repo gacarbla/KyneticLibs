@@ -13,6 +13,7 @@ export {
     getOwner,
     getScopedValue,
     runWithOwner,
+    runWithOwnerTracked,
     setErrorHandler,
     setScopedValue,
     setServerMode,
