@@ -1,32 +1,57 @@
 {
     "name": "@kyneticweb/core",
-    "version": "0.1.1",
-    "description": "Core Library",
-    "bugs": {
-        "url": "https://github.com/gacarbla/KyneticLibs/issues/new",
-        "email": "gacarbla@gacarbla.es"
+    "version": "0.1.0",
+    "description": "Compose the Kynetic libraries into a single, fully typed object.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
     },
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
     "files": [
         "dist"
     ],
-    "author": "gacarbla <gacarbla@gacarbla.es> (https://gacarbla.es)",
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "core",
+        "composition",
+        "dependency-injection",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/core"
+    },
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "publish": "npm publish --access public"
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
     },
-    "publishConfig": {
-        "access": "public",
-        "tag": "beta"
+    "dependencies": {
+        "@kyneticweb/console": "^0.2.0",
+        "@kyneticweb/container": "^0.2.0",
+        "@kyneticweb/counter": "^0.2.0",
+        "@kyneticweb/parser": "^0.2.0",
+        "@kyneticweb/utils": "^0.1.0",
+        "@kyneticweb/versions": "^0.2.0"
     },
     "devDependencies": {
-        "@types/node": "^24.10.0",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.9.3"
-    },
-    "directories": {
-        "test": "test"
+        "@types/node": "^24.10.0"
     }
 }

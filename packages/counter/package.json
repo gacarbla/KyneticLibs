@@ -1,32 +1,48 @@
 {
     "name": "@kyneticweb/counter",
-    "version": "0.1.4",
-    "description": "Counter",
-    
+    "version": "0.2.0",
+    "description": "A small, predictable counter with explicit increment and decrement operations.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "counter",
+        "count",
+        "statistics",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/counter"
+    },
     "bugs": {
         "email": "gacarbla@gacarbla.es",
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
     },
-
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "files": [ "dist" ],
     "author": {
         "name": "gacarbla",
         "email": "gacarbla@gacarbla.es",
         "url": "https://gacarbla.es"
     },
-    
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "publish": "npm publish --access public"
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
     },
-    "publishConfig": {
-        "access": "public",
-        "tag": "beta"
-    },
-
     "dependencies": {},
     "devDependencies": {
         "@types/node": "^24.10.0"

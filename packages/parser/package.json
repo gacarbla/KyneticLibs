@@ -1,16 +1,40 @@
 {
     "name": "@kyneticweb/parser",
-    "version": "0.1.4",
-    "description": "Parser",
+    "version": "0.2.0",
+    "description": "Type-safe conversion between strings, numbers, dates, JSON, YAML and words.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "parser",
+        "convert",
+        "json",
+        "yaml",
+        "date",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/parser"
+    },
     "bugs": {
         "email": "gacarbla@gacarbla.es",
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
     },
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "files": [
-        "dist"
-    ],
     "author": {
         "name": "gacarbla",
         "email": "gacarbla@gacarbla.es",
@@ -18,17 +42,15 @@
     },
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "publish": "npm publish --access public"
-    },
-    "publishConfig": {
-        "access": "public",
-        "tag": "beta"
-    },
-    "devDependencies": {
-        "@types/node": "^24.10.0"
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
     },
     "dependencies": {
+        "@kyneticweb/utils": "^0.1.0",
         "js-yaml": "^4.1.0"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^24.10.0"
     }
 }

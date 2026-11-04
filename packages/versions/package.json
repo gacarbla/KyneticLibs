@@ -1,32 +1,50 @@
 {
     "name": "@kyneticweb/versions",
-    "version": "0.1.4",
-    "description": "Versioning",
-    
+    "version": "0.2.0",
+    "description": "Schema driven version parsing, validation and comparison.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "version",
+        "semver",
+        "schema",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/versions"
+    },
     "bugs": {
         "email": "gacarbla@gacarbla.es",
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
     },
-
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "files": [ "dist" ],
     "author": {
         "name": "gacarbla",
         "email": "gacarbla@gacarbla.es",
         "url": "https://gacarbla.es"
     },
-    
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "publish": "npm publish --access public"
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
     },
-    "publishConfig": {
-        "access": "public",
-        "tag": "beta"
-    },
-
     "dependencies": {},
-    "devDependencies": {}
+    "devDependencies": {
+        "@types/node": "^24.10.0"
+    }
 }

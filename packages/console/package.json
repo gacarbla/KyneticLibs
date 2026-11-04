@@ -1,46 +1,58 @@
 {
-    "version": "0.1.6",
-
     "name": "@kyneticweb/console",
-    "description": "Console Interface using Blessed.",
+    "version": "0.2.0",
+    "description": "Coloured console logging with file persistence and an optional blessed interface.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
     "keywords": [
         "console",
         "cli",
-        "interface",
+        "logger",
         "terminal",
-        "KyneticLibs",
+        "blessed",
         "kyneticweb"
     ],
-
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/console"
+    },
     "bugs": {
         "email": "gacarbla@gacarbla.es",
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
     },
-
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "files": [ "dist" ],
     "author": {
         "name": "gacarbla",
         "email": "gacarbla@gacarbla.es",
         "url": "https://gacarbla.es"
     },
-    
     "license": "CUSTOM-NON-COMMERCIAL",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "publish": "npm publish --access public"
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
     },
-    "publishConfig": {
-        "access": "public",
-        "tag": "beta"
-    },
-    
     "dependencies": {
+        "@kyneticweb/utils": "^0.1.0"
+    },
+    "optionalDependencies": {
         "blessed": "^0.1.81"
     },
     "devDependencies": {
-        "@types/node": "^24.10.0",
-        "@types/blessed": "^0.1.25"
+        "@types/blessed": "^0.1.25",
+        "@types/node": "^24.10.0"
     }
 }

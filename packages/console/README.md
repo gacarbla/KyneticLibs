@@ -1,78 +1,92 @@
 # @Kyneticweb/Console
 
-Una utilidad para manejar las salidas de consola de una forma profesional pero con sencillez.
+Coloured console logging with file persistence and an optional full-screen `blessed` interface.
 
-## Instalación
+## Installation
 
 ```bash
 npm install @kyneticweb/console
 ```
 
-## Uso
+The full-screen interface is provided by the optional `blessed` dependency, which is installed
+with the package by default but can be omitted:
+
+```bash
+npm install blessed
+```
+
+## Usage
 
 ```typescript
-import ConsoleManager from '../src';
+import { ConsoleManager } from "@kyneticweb/console";
 
-async function init_console() {
-    const console = new ConsoleManager({
-        logFilePath: './logs/console.log',
-        color: true,
-        showStats: true,
-    });
+const console = new ConsoleManager({
+    logFilePath: "./logs/console.log",
+    color: true,
+    maxEntries: 5000,
+});
 
-    await console.enableUI(); // Asegura que la UI blessed esté lista
+console.log("Starting system...");
+console.info("Loading modules...");
+console.success("Modules loaded");
+console.warn("DATABASE_MANAGER is outdated");
+console.error("Could not load DATABASE_MANAGER");
 
-    console.log('Iniciando sistema...')
-    console.info('Cargando módulos...');
-    console.success('Módulos cargados correctamente');
-    console.warn('El módulo DATABASE_MANAGER está usando una versión obsoleta.');
-    let answered = false;
-    while (!answered) {
-        const ans = await console.ask('¿Estás seguro de que deseas continuar? (s/n)');
-        switch (ans.toLowerCase()) {
-            case 's':
-            case 'si':
-            case 'y':
-            case 'yes':
-                console.info('Continuando con la operación...');
-                console.error('Imposible cargar el módulo DATABASE_MANAGER.');
-                console.success('Aplicación iniciada correctamente con 1 error.');
-                answered = true;
-                break;
-            case 'n':
-            case 'no':
-                console.error('Operación cancelada por el usuario.');
-                console.info('Saliendo del sistema...');
-                process.exit(0);
-            default:
-                console.warn('Respuesta no válida, intentando de nuevo en 2 segundos...');
-                await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-    }
-}
-
-// Inicialización de la consola
-init_console();
-
-// ...
-
-// La ejecución continúa, la consola ocupa un hilo separado
+const answer = await console.ask("Continue? (y/n)");
+await console.close();
 ```
+
+## Full-screen interface
+
+```typescript
+const console = new ConsoleManager({ ui: "blessed" });
+await console.enableUI();
+
+console.info("The interface now owns the screen");
+```
+
+- `q` / `Ctrl+C` closes the interface gracefully.
+- `l` opens the log file with the platform file manager.
+- `ui: "auto"` falls back to plain output when `blessed` is not installed.
+- `ui: "blessed"` throws when the optional package cannot be loaded.
+- `ui: "plain"` never loads `blessed`.
+
+Without a terminal, `ask()` resolves to `""` instead of waiting forever. Tests and embedded
+processes can inject their own streams with the third constructor argument:
+
+```typescript
+const console = new ConsoleManager({ ui: "plain" }, null, { input, output });
+```
+
+## Configuration
+
+| Option        | Default                  | Description                                     |
+| ------------- | ------------------------ | ----------------------------------------------- |
+| `logFilePath` | `"./logs/console.log"`   | File that receives every line.                  |
+| `append`      | `false`                  | Append instead of truncating the file.          |
+| `uniqueFile`  | `false`                  | Add a timestamp and random suffix to the name.  |
+| `dateFormat`  | `"YY-MM-DD HH:mm:ss"`    | Timestamp pattern.                              |
+| `color`       | `true`                   | ANSI colours for plain output.                  |
+| `maxEntries`  | `5000`                   | In-memory buffer size.                          |
+| `ui`          | `"auto"`                 | `"auto"`, `"blessed"` or `"plain"`.             |
 
 ## API
 
-### Clase ConsoleManager
+### `ConsoleManager`
 
-#### Constructor(options: ConsoleOptions)
+- `log`, `info`, `success`, `warn`, `error`, `debug`, `trace(message: string): void`
+- `ask(question: string): Promise<string>`
+- `getLogs(): ConsoleLogEntry[]`
+- `getStats(): ConsoleStats`
+- `enableUI(): Promise<this>`
+- `close(): Promise<void>`
 
-Crea una nueva instancia de ConsoleManager con las opciones especificadas.
+### Building blocks
 
-#### Métodos
-
-- `enableUI(): Promise<void>`: Habilita la interfaz de usuario de la consola.
-- `log(message: string): void`: Registra un mensaje de log estándar.
-- `info(message: string): void`: Registra un mensaje informativo.
-- `success(message: string): void`: Registra un mensaje de éxito.
-- `warn(message: string): void`: Registra un mensaje de advertencia.
-- `error(message: string): void`: Registra un mensaje de error.
-- `ask(question: string): Promise<string>`: Realiza una pregunta al usuario y espera su respuesta.
+- `LogStore`: bounded, circular in-memory buffer.
+- `LogWriter`: asynchronous stream writer with `ready()`, `write(line)` and `close()`.
+- `PlainRenderer`: stdout/stderr output with injectable streams.
+- `BlessedRenderer`: incremental full-screen interface.
+- `formatLogLine`, `colorize`: shared formatting helpers.
+- `DEFAULT_CONSOLE_CONFIG`: the defaults shown above.
+- `createConsoleManager`: helper alternative to `new`.

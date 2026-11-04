@@ -1,141 +1,41 @@
 // =[ EN ]===========================================================================
 //
 //  CONTAINER
-//  A simple container.
+//  Typed key/value containers for shared application state.
 //
 //  Developed by gacarbla
-//  v1.0.0
+//  v0.2.0
 //
 // =[ ES ]===========================================================================
 //
 //  CONTAINER
-//  Clase contenedora.
+//  Contenedores tipados de clave/valor para estado compartido.
 //
 //  Desarrollado por gacarbla
-//  v1.0.0
+//  v0.2.0
 //
 // =[ GL ]===========================================================================
 //
 //  CONTAINER
-//  Contenedor.
+//  Contedores tipados de clave/valor para estado compartido.
 //
 //  Desenrolado por gacarbla
-//  v1.0.0
+//  v0.2.0
 //
 // ==================================================================================
 
+/**
+ * `@kyneticweb/container`
+ *
+ * Three container flavours built on the same internal store:
+ * `BasicContainer` for uniform values, `StrictContainer` for a fixed key
+ * shape and `DynamicContainer` for a key shape that grows over time.
+ *
+ * @packageDocumentation
+ */
 
-import { DynamicKeyTypes, KeyMap } from "./types";
-
-export class BasicContainer<T = any> {
-    private items: Map<string, T>;
-
-    constructor() {
-        this.items = new Map<string, T>();
-    }
-
-    set(key: string, value: T): this {
-        this.items.set(key, value);
-        return this;
-    }
-
-    get(key: string): T | undefined {
-        return this.items.get(key) as T | undefined;
-    }
-
-    has(key: string): boolean {
-        return this.items.has(key);
-    }
-
-    delete(key: string): boolean {
-        return this.items.delete(key);
-    }
-
-    clear(): void {
-        this.items.clear();
-    }
-
-    getAll(): Map<string, T> {
-        return new Map(this.items);
-    }
-}
-
-export class StrictContainer<K extends KeyMap> {
-    private items: Map<keyof K, K[keyof K]>;
-
-    constructor() {
-        this.items = new Map();
-    }
-
-    set<Key extends keyof K>(key: Key, value: K[Key]): this {
-        this.items.set(key, value);
-        return this;
-    }
-
-    get<Key extends keyof K>(key: Key): K[Key] | undefined {
-        return this.items.get(key);
-    }
-
-    has<Key extends keyof K>(key: Key): boolean {
-        return this.items.has(key);
-    }
-
-    delete<Key extends keyof K>(key: Key): boolean {
-        return this.items.delete(key);
-    }
-
-    clear(): void {
-        this.items.clear();
-    }
-
-    getAll(): Map<keyof K, K[keyof K]> {
-        return new Map(this.items);
-    }
-}
-
-export class DynamicContainer<K extends DynamicKeyTypes = {}> {
-    private items: Map<string, unknown>;
-
-    constructor(items?: Map<string, unknown>) {
-        this.items = items ? new Map(items) : new Map();
-    }
-
-    addKey<Key extends string, T>(key: Key): DynamicContainer<K & { [P in Key]: T }> {
-        const newContainer = new DynamicContainer<K & { [P in Key]: T }>(this.items);
-        if (!newContainer.items.has(key)) {
-            newContainer.items.set(key, undefined);
-        }
-        return newContainer;
-    }
-
-    set<Key extends keyof K>(key: Key, value: K[Key]): this {
-        this.items.set(key as string, value);
-        return this;
-    }
-
-    get<Key extends keyof K>(key: Key): K[Key] | undefined {
-        return this.items.get(key as string) as K[Key] | undefined;
-    }
-
-    has<Key extends keyof K>(key: Key): boolean {
-        return this.items.has(key as string);
-    }
-
-    delete<Key extends keyof K>(key: Key): boolean {
-        return this.items.delete(key as string);
-    }
-
-    clear(): void {
-        this.items.clear();
-    }
-
-    getAll(): Map<string, unknown> {
-        return new Map(this.items);
-    }
-}
-
-export default {
-    Basic: BasicContainer,
-    Strict: StrictContainer,
-    Dynamic: DynamicContainer,
-};
+export * from "./types.js";
+export * from "./readonly-container.js";
+export * from "./basic-container.js";
+export * from "./strict-container.js";
+export * from "./dynamic-container.js";

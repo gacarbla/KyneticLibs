@@ -1,0 +1,49 @@
+{
+    "name": "@kyneticweb/utils",
+    "version": "0.1.0",
+    "description": "Small shared utilities: date formatting, text wrapping and identifiers.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "utils",
+        "date",
+        "format",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/utils"
+    },
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
+    "license": "CUSTOM-NON-COMMERCIAL",
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.0"
+    }
+}

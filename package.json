@@ -1,33 +1,52 @@
 {
     "name": "@kyneticweb/libs",
-    "version": "1.0.3",
+    "version": "0.2.0",
+    "private": true,
     "description": "Kynetic Web Libraries Monorepo",
+    "type": "module",
     "workspaces": [
         "packages/*"
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/gacarbla/KyneticLibs"
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git"
     },
-    "license": "CUSTOM-NON-COMMERCIAL",
-
     "bugs": {
         "email": "gacarbla@gacarbla.es",
         "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
     },
-
     "author": {
         "name": "gacarbla",
         "email": "gacarbla@gacarbla.es",
         "url": "https://gacarbla.es"
     },
-    "publishConfig": {
-        "access": "public",
-        "tag": "beta"
+    "license": "CUSTOM-NON-COMMERCIAL",
+    "engines": {
+        "node": ">=20"
     },
-
     "scripts": {
-        "build": "npm run build -ws",
-        "publish": "node ./publish-all.js && npm publish --access public"
+        "build": "tsc -b",
+        "clean": "tsc -b --clean && node scripts/clean.mjs",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "smoke": "node scripts/smoke.mjs",
+        "changeset": "changeset",
+        "version": "changeset version",
+        "release": "npm run build && changeset publish"
+    },
+    "devDependencies": {
+        "@changesets/cli": "^3.0.3",
+        "@eslint/js": "^10.0.0",
+        "@types/node": "^24.10.0",
+        "eslint": "^10.0.0",
+        "eslint-config-prettier": "^10.1.0",
+        "prettier": "^3.9.10",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.72.1",
+        "vitest": "^5.1.0"
     }
 }
