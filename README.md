@@ -19,6 +19,8 @@ without extra setup.
 | [`@kyneticweb/core`](./packages/core) | Composes the libraries into one fully typed object. |
 | [`@kyneticweb/counter`](./packages/counter) | Predictable counter with explicit operations. |
 | [`@kyneticweb/dom`](./packages/dom) | Fine-grained DOM renderer with typed TSX, components and context. |
+| [`@kyneticweb/forms`](./packages/forms) | Typed form state, validation and accessible fields. |
+| [`@kyneticweb/i18n`](./packages/i18n) | Typed messages, plurals and locale formatting. |
 | [`@kyneticweb/parser`](./packages/parser) | Conversions between strings, numbers, dates, JSON, YAML and words. |
 | [`@kyneticweb/reactive`](./packages/reactive) | Signals, computed values, effects and ownership scopes. |
 | [`@kyneticweb/router`](./packages/router) | Typed routing with path, hash and memory strategies. |
@@ -68,6 +70,8 @@ The monorepo also ships the first vertical slice of a TypeScript-native UI runti
 - `@kyneticweb/reactive` — signals, computed values and effects with automatic tracking.
 - `@kyneticweb/dom` — direct DOM bindings, function components, context and lifecycle.
 - `@kyneticweb/router` — typed routes, guards, lazy views and navigation links.
+- `@kyneticweb/i18n` — typed messages, plurals and locale formatting.
+- `@kyneticweb/forms` — typed form state, validation and accessible fields.
 - `@kyneticweb/compiler` — compiles TSX so each dynamic expression updates on its own.
 
 ```bash

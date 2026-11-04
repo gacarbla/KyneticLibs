@@ -24,6 +24,8 @@ const PACKAGE_NAMES = [
     "reactive",
     "dom",
     "router",
+    "i18n",
+    "forms",
     "container",
     "counter",
     "versions",

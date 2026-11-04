@@ -55,8 +55,7 @@ module.exports = {
 | Component attribute | Left eager (pass an accessor for reactive props) |
 | Component child | Wrapped so a provider resolves it inside its context |
 | Arrow/function expression | Left as-is (render props) |
-| Spread on a component | Allowed (props are eager) |
-| Spread on an intrinsic element | Compile error: it would silently disable reactivity |
+| Spread | Allowed; values are eager unless they are already thunks (form bindings provide them) |
 
 ## Tests and benchmarks
 

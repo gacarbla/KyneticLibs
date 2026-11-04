@@ -55,15 +55,10 @@ module.exports = function kyneticJsx(api) {
 
                 for (const attribute of opening.attributes) {
                     if (attribute.type === "JSXSpreadAttribute") {
-                        // Component props are eager by design, so a spread is
-                        // safe there. On intrinsic elements it would silently
-                        // disable reactivity for the spread attributes.
-                        if (intrinsic) {
-                            throw path.buildCodeFrameError(
-                                "Spread attributes are not supported on intrinsic elements. " +
-                                    "Pass explicit props or use a component that accepts an accessor.",
-                            );
-                        }
+                        // Spreads are allowed on components and on intrinsic
+                        // elements. Dynamic values inside a spread are eager
+                        // unless they are already thunks (functions); this is
+                        // what form bindings provide.
                         continue;
                     }
                     if (!intrinsic) {

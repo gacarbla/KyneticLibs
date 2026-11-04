@@ -1,0 +1,56 @@
+{
+    "name": "@kyneticweb/i18n",
+    "version": "0.1.0",
+    "description": "Typed internationalisation: messages, interpolation, plurals and locale formatting.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "i18n",
+        "translation",
+        "locale",
+        "plural",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/i18n"
+    },
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
+    "license": "CUSTOM-NON-COMMERCIAL",
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
+    },
+    "dependencies": {
+        "@kyneticweb/reactive": "^0.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.0"
+    }
+}

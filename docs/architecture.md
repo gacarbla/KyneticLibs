@@ -1,6 +1,6 @@
 # Kynetic Web runtime — architecture
 
-Status: **M1–M4 delivered**, **M5 in progress** (router done, i18n and forms next).
+Status: **M1–M5 delivered** (reactivity, DOM, compiler, router, i18n, forms). **M6 (SSR) next.**
 The long-term goal is a TypeScript-native replacement for React with a better developer
 experience, not a clone.
 
@@ -21,8 +21,10 @@ experience, not a clone.
 @kyneticweb/reactive     signals, computed, effects, batch, owners
 └── @kyneticweb/dom      jsx runtime, elements, components, context, lifecycle
     ├── @kyneticweb/router     typed routes, guards, lazy views, links
+    ├── @kyneticweb/i18n       typed messages, plurals, locale formatting
+    ├── @kyneticweb/forms      typed form state, validation, accessible fields
     ├── @kyneticweb/compiler   Babel + Vite plugin (dynamic expression thunks)
-    └── (future) i18n, forms, ssr, test, devtools, ui
+    └── (future) ssr, test, devtools, ui
 ```
 
 ## Compiler contract
@@ -37,7 +39,7 @@ expressions in zero-argument thunks. The DOM runtime executes each thunk inside 
 | Event handler, `ref`, `key` | Eager | Handlers are not reactive values |
 | Component attribute | Eager | Pass an accessor (`each={items}`) for reactive props |
 | Component child | Thunk | Providers resolve children inside their context |
-| Spread attribute | Compile error | Not supported yet; avoids silent eager reads |
+| Spread attribute | Allowed; eager unless values are thunks | Form bindings pass thunks for reactive values |
 
 Example:
 
@@ -100,7 +102,8 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 - `For` re-creates a row when the item object changes, even under the same key; keep the item
   object stable or pass an accessor for per-item reactive fields.
 - Component attributes are eager; reactive props need an accessor.
-- Spread attributes are rejected by the compiler.
+- Spread attributes are allowed; values are eager unless they are already thunks (form
+  bindings provide reactive thunks).
 - Context values are not reactive unless they are accessors.
 - No suspense or hydration yet (M6).
 - SVG elements are created with the SVG namespace, but `<foreignObject>` children remain SVG.
