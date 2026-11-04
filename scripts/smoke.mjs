@@ -28,6 +28,7 @@ const PACKAGE_NAMES = [
     "forms",
     "ssr",
     "testing",
+    "devtools",
     "container",
     "counter",
     "versions",

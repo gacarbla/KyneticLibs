@@ -6,6 +6,8 @@
 
 export { resolveChild } from "./child.js";
 export { createPending, Fragment, isServerMode, isServerRendering, jsx, render, setServerMode } from "./dom.js";
+export { isDevtoolsEnabled, linkOwner, setDevtoolsHook } from "./devtools.js";
+export type { ComponentDevtoolsEvent, DevtoolsHook } from "./devtools.js";
 export { hydrate } from "./hydrate.js";
 export { isVNode } from "./vnode.js";
 export type {

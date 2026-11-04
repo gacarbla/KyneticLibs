@@ -159,4 +159,13 @@ function App() {
     );
 }
 
-render(() => <App />, document.getElementById("app")!);
+// The panel is opt-in and code-split: open the page with ?devtools.
+async function main(): Promise<void> {
+    if (new URLSearchParams(location.search).has("devtools")) {
+        const { createDevtools } = await import("@kyneticweb/devtools");
+        createDevtools();
+    }
+    render(() => <App />, document.getElementById("app")!);
+}
+
+void main();

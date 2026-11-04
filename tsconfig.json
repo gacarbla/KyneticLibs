@@ -26,6 +26,9 @@
             "path": "packages/testing"
         },
         {
+            "path": "packages/devtools"
+        },
+        {
             "path": "packages/container"
         },
         {

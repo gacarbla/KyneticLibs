@@ -20,6 +20,7 @@
             "@kyneticweb/reactive": ["packages/reactive/src/index.ts"],
             "@kyneticweb/router": ["packages/router/src/index.ts"],
             "@kyneticweb/testing": ["packages/testing/src/index.ts"],
+            "@kyneticweb/devtools": ["packages/devtools/src/index.ts"],
             "@kyneticweb/utils": ["packages/utils/src/index.ts"],
             "@kyneticweb/versions": ["packages/versions/src/index.ts"]
         }

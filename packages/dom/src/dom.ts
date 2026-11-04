@@ -10,6 +10,7 @@ import {
     type Owner,
 } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
+import { isDevtoolsEnabled, registerComponent, unregisterComponent } from "./devtools.js";
 import { isVNode, type VNode } from "./vnode.js";
 import type { Child, Component, Props } from "./types.js";
 
@@ -654,10 +655,24 @@ function createComponent<P extends object>(component: Component<P>, props: Props
         merged.children = children;
     }
 
+    const tracked = isDevtoolsEnabled();
+    const parentOwner = tracked ? getOwner() : null;
+    const name = tracked ? componentName(component) : "";
+
     return createRoot(() => {
+        if (tracked) {
+            const registration = registerComponent(getOwner(), parentOwner, name);
+            onCleanup(() => unregisterComponent(registration, name));
+        }
         const output = component(merged as P & { children?: Child });
         return materialize(output);
     });
+}
+
+/** Resolves the name shown by devtools. */
+function componentName(component: object): string {
+    const named = component as { displayName?: string; name?: string };
+    return named.displayName ?? (named.name || "Anonymous");
 }
 
 /** Converts a component output into a single node. */

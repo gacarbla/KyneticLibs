@@ -1,6 +1,7 @@
 import {
     createOwner,
     disposeOwner,
+    getOwner,
     getScopedValue,
     onCleanup,
     runWithOwner,
@@ -8,6 +9,7 @@ import {
 } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
 import { isServerRendering } from "./dom.js";
+import { linkOwner } from "./devtools.js";
 import type { Child } from "./types.js";
 
 /**
@@ -56,7 +58,9 @@ export class Context<T> {
             } as unknown as Child;
         }
 
+        const parent = getOwner();
         const scope = createOwner();
+        linkOwner(scope, parent);
         onCleanup(() => disposeOwner(scope));
         return runWithOwner(scope, () => {
             // Wrapped so an `undefined` provider value is distinguishable from

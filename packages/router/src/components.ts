@@ -5,11 +5,12 @@ import {
     createSignal,
     isServerRendering,
     jsx,
+    linkOwner,
     resolveChild,
     useContext,
     type Child,
 } from "@kyneticweb/dom";
-import { createOwner, disposeOwner, onCleanup, runWithOwner, type Owner } from "@kyneticweb/reactive";
+import { createOwner, disposeOwner, getOwner, onCleanup, runWithOwner, type Owner } from "@kyneticweb/reactive";
 import type { Router } from "./router.js";
 import type { NavigateOptions, RouteDefinitions, RouteMap } from "./types.js";
 import { cachedView, loadView } from "./views.js";
@@ -88,7 +89,9 @@ export function RouterView(props: RouterViewProps = {}): Child {
         if (owner !== null) {
             disposeOwner(owner);
         }
+        const parent = getOwner();
         owner = createOwner();
+        linkOwner(owner, parent);
         view.set(runWithOwner(owner, () => resolveChild(content)));
     };
 

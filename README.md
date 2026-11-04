@@ -26,6 +26,7 @@ without extra setup.
 | [`@kyneticweb/router`](./packages/router) | Typed routing with path, hash and memory strategies. |
 | [`@kyneticweb/ssr`](./packages/ssr) | Server-side rendering without a DOM. |
 | [`@kyneticweb/testing`](./packages/testing) | Mount, query, interact and wait in tests. |
+| [`@kyneticweb/devtools`](./packages/devtools) | Component tree and reactive counters in a dev panel. |
 | [`@kyneticweb/utils`](./packages/utils) | Date formatting, text wrapping and identifier helpers. |
 | [`@kyneticweb/versions`](./packages/versions) | Schema driven version parsing, validation and comparison. |
 
@@ -84,9 +85,10 @@ npm run dev:example   # http://localhost:5173
 ```
 
 The example lives in [`examples/counter`](./examples/counter): counter, computed value, todo
-list with controlled input, context and a theme effect. The design and the current
-limitations are documented in [`docs/architecture.md`](./docs/architecture.md); the optional
-Rust/Node-API policy is in [`docs/native.md`](./docs/native.md).
+list with controlled input, context and a theme effect. Open it with `?devtools` to load the
+development panel (code-split, so it is not part of the app bundle). The design and the
+current limitations are documented in [`docs/architecture.md`](./docs/architecture.md); the
+optional Rust/Node-API policy is in [`docs/native.md`](./docs/native.md).
 
 A side-by-side benchmark against React 19 lives in [`examples/benchmark`](./examples/benchmark):
 
