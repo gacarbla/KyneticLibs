@@ -7,7 +7,10 @@ package is private and is never published.
 ## Requirements
 
 - Node.js 20 or newer.
+- npm 11.15 or newer (npm 12 recommended) for staged-publishing commands.
 - A member of the `@kyneticweb` npm organisation with a valid session (`npm whoami`).
+- Accounts protected with a passkey instead of a TOTP authenticator need a granular access
+  token with **Bypass 2FA** enabled, or must approve staged publishes from the npm website.
 
 ## 1. Prepare the release
 
@@ -42,6 +45,34 @@ npm run release            # builds and publishes to the "latest" tag
 ```
 
 Published versions are tagged in git locally. Push them with `git push --follow-tags`.
+
+### If npm stages the publish
+
+npm can place a version in its staging area instead of publishing it directly (staged
+publishing). `npm publish` then fails with:
+
+```
+E409 Conflict - Cannot publish over previously staged version "x.y.z"
+```
+
+Review and approve the staged version with 2FA:
+
+```bash
+npx npm@12 stage list
+npx npm@12 stage view <stage-id>
+npx npm@12 stage approve <stage-id>     # prompts for 2FA
+```
+
+Or, with a passkey, open npmjs.com → **Staged Packages** → **Approve**. For a brand-new
+package, npm publishes a public `0.0.0-stage` placeholder until the real version is approved.
+
+A rejected staged version must be re-published:
+
+```bash
+npx npm@12 stage reject <stage-id>
+```
+
+The `stage` commands require npm 11.15+ and Node 22.14+ (npm 12 also needs Node 24.15+).
 
 ## 4. Keep the beta tag in sync
 
