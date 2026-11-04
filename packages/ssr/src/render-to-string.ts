@@ -176,14 +176,16 @@ function renderNode(node: VNode, tasks: Promise<unknown>[] | null): string {
             return renderValue(node.children, tasks);
         case "each": {
             const items = typeof node.each === "function" ? node.each() : node.each;
-            if (items.length === 0) {
-                return renderValue(node.fallback, tasks);
-            }
-            return items.map((item, index) => renderValue(node.render(item, index), tasks)).join("");
+            const content =
+                items.length === 0
+                    ? renderValue(node.fallback, tasks)
+                    : items.map((item, index) => renderValue(node.render(item, index), tasks)).join("");
+            return `<!--k:for-->${content}<!--/k:for-->`;
         }
         case "when": {
             const visible = typeof node.when === "function" ? node.when() : node.when;
-            return renderValue(visible ? node.children : node.fallback, tasks);
+            const content = renderValue(visible ? node.children : node.fallback, tasks);
+            return `<!--k:when-->${content}<!--/k:when-->`;
         }
         case "portal":
             return renderValue(node.children, tasks);

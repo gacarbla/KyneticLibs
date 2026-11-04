@@ -73,8 +73,12 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 - `render(component, container)` returns a disposer that clears the container and releases
   every effect.
 - `hydrate(component, container)` rebuilds the node tree in hydration mode, adopts the
-  existing DOM for elements/components/dynamic bindings/context/events/refs, and falls back
-  to a client render when it finds a collection, conditional, portal or boundary.
+  existing DOM for elements/components/dynamic bindings/context/events/refs, keyed lists and
+  conditionals, and falls back to a client render for portals, error boundaries and pending
+  boundaries.
+- Server output wraps `<For>` and `<Show>` in comment markers (`k:for`, `k:when`). Hydration
+  uses their nesting to find each region, adopts the rows or the active branch, and seeds the
+  normal reconciler so later updates stay keyed.
 - `renderToStringAsync(component)` collects the promises registered by `createPending` nodes,
   awaits them and renders again (up to 10 passes). The component behind a pending boundary
   must cache its result so the later pass is synchronous.
@@ -142,8 +146,8 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 - Spread attributes are allowed; values are eager unless they are already thunks (form
   bindings provide reactive thunks).
 - Context values are not reactive unless they are accessors.
-- Hydration adopts elements, components, bindings, context, events and refs; collections,
-  conditionals, portals and error boundaries fall back to a client render.
+- Hydration adopts elements, components, bindings, context, events, refs, lists and
+  conditionals. Portals, error boundaries and pending boundaries fall back to a client render.
 - Lazy routes need `preload()` before hydration to avoid a loading flash.
 - SVG elements are created with the SVG namespace, but `<foreignObject>` children remain SVG.
 
@@ -161,6 +165,6 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 | --- | --- |
 | M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components — **delivered** |
 | M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) — **delivered** |
-| M6 | `renderToString`, `renderToStringAsync`, hydration, streaming — **async rendering and hydration delivered**; streaming and fine-grained list hydration next |
+| M6 | `renderToString`, `renderToStringAsync`, hydration of elements, context, lists and conditionals — **delivered**; streaming next |
 | M7 | Test renderer, devtools, component library |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |

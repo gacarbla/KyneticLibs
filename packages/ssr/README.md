@@ -73,13 +73,18 @@ import { hydrate } from "@kyneticweb/dom";
 hydrate(() => <App />, document.getElementById("app")!);
 ```
 
-Adopted in place: elements, text, dynamic attributes, context providers, event handlers and
-`ref` callbacks. `onMount` runs after the adopted tree is live.
+Adopted in place: elements, text, dynamic attributes, context providers, event handlers,
+`ref` callbacks, keyed lists and conditional branches. `onMount` runs after the adopted tree
+is live.
+
+Lists and branches are wrapped in comment markers on the server (`<!--k:for-->`,
+`<!--k:when-->`). Hydration uses them to find each region, adopts the rows or the active
+branch, and then lets the normal reactive reconciler take over.
 
 ## Limitations
 
-- Collections, conditionals, portals and error boundaries currently fall back to a client
-  render of the root (correct, but those nodes are recreated).
+- Portals, error boundaries and pending boundaries currently fall back to a client render of
+  the root (correct, but those nodes are recreated).
 - Lazy routes need `router.preload()` (or `renderToStringAsync`) before hydration to avoid a
   loading flash.
 - Do not return real DOM nodes from a component while rendering on the server.

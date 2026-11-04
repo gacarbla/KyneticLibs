@@ -1,4 +1,4 @@
-import { createContext, createSignal, onMount, useContext, type Child } from "@kyneticweb/dom";
+import { createContext, createSignal, onMount, Show, useContext, type Child } from "@kyneticweb/dom";
 import { Field, createForm } from "@kyneticweb/forms";
 import type { I18n } from "@kyneticweb/i18n";
 import { Link, RouterProvider, RouterView, type RoutePathMap, type Router } from "@kyneticweb/router";
@@ -167,12 +167,9 @@ function ContactPage(): Child {
             <h1>{i18n.t("contact.title")}</h1>
             <p class="lead">{i18n.t("contact.intro")}</p>
 
-            {() =>
-                sent() ? (
-                    <p class="success" role="status">
-                        {i18n.t("form.sent")}
-                    </p>
-                ) : (
+            <Show
+                when={sent}
+                fallback={
                     <form class="card form" noValidate onSubmit={form.handleSubmit}>
                         <Field form={form} name="name" label={i18n.t("form.name")} />
                         <Field form={form} name="email" label={i18n.t("form.email")} type="email" />
@@ -188,8 +185,12 @@ function ContactPage(): Child {
                             {() => (form.submitting() ? i18n.t("form.sending") : i18n.t("form.send"))}
                         </button>
                     </form>
-                )
-            }
+                }
+            >
+                <p class="success" role="status">
+                    {i18n.t("form.sent")}
+                </p>
+            </Show>
         </section>
     );
 }

@@ -1,6 +1,16 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
-import { createContext, createSignal, For, hydrate, jsx, useContext, type Child } from "@kyneticweb/dom";
+import {
+    createContext,
+    createSignal,
+    For,
+    hydrate,
+    jsx,
+    onCleanup,
+    Show,
+    useContext,
+    type Child,
+} from "@kyneticweb/dom";
 import { renderToString } from "../src/index.js";
 
 async function tick(): Promise<void> {
@@ -128,7 +138,7 @@ describe("hydrate", () => {
         expect(container.textContent).toBe("againsend");
     });
 
-    it("falls back to a client render for collections", async () => {
+    it("adopts list rows and keeps them keyed", async () => {
         const items = createSignal([1, 2]);
         // Manual jsx() cannot infer the generic parameter of For; TSX does.
         const h = jsx as unknown as (type: unknown, props: unknown, ...children: unknown[]) => Child;
@@ -142,14 +152,98 @@ describe("hydrate", () => {
 
         const container = document.createElement("div");
         container.innerHTML = renderToString(() => jsx(List, null));
-        expect(container.querySelectorAll("li")).toHaveLength(2);
+        const rows = [...container.querySelectorAll("li")];
+        expect(rows).toHaveLength(2);
 
         hydrate(() => jsx(List, null), container);
-        expect(container.querySelectorAll("li")).toHaveLength(2);
+        expect([...container.querySelectorAll("li")]).toEqual(rows);
 
         items.set([1, 2, 3]);
         await tick();
         expect(container.querySelectorAll("li")).toHaveLength(3);
+        expect(container.querySelectorAll("li")[0]).toBe(rows[0]);
+        expect(container.querySelectorAll("li")[1]).toBe(rows[1]);
+    });
+
+    it("adopts an empty list fallback and swaps it for rows", async () => {
+        const items = createSignal<number[]>([]);
+        const h = jsx as unknown as (type: unknown, props: unknown, ...children: unknown[]) => Child;
+        function List(): Child {
+            return jsx(
+                "ul",
+                null,
+                h(For, { each: items, fallback: jsx("p", null, "empty") }, (item: number) => jsx("li", null, item)),
+            );
+        }
+
+        const container = document.createElement("div");
+        container.innerHTML = renderToString(() => jsx(List, null));
+        expect(container.textContent).toBe("empty");
+
+        hydrate(() => jsx(List, null), container);
+        expect(container.textContent).toBe("empty");
+
+        items.set([1, 2]);
+        await tick();
+        expect(container.textContent).toBe("12");
+        expect(container.querySelector("p")).toBeNull();
+    });
+
+    it("adopts a conditional branch and toggles it", async () => {
+        const visible = createSignal(true);
+        function Panel(): Child {
+            return jsx(Show, {
+                when: visible,
+                children: jsx("p", null, "on"),
+                fallback: jsx("p", null, "off"),
+            });
+        }
+
+        const container = document.createElement("div");
+        container.innerHTML = renderToString(() => jsx(Panel, null));
+        const on = container.querySelector("p");
+
+        hydrate(() => jsx(Panel, null), container);
+        expect(container.querySelector("p")).toBe(on);
+        expect(container.textContent).toBe("on");
+
+        visible.set(false);
+        await tick();
+        expect(container.textContent).toBe("off");
+        expect(container.querySelectorAll("p")).toHaveLength(1);
+
+        visible.set(true);
+        await tick();
+        expect(container.textContent).toBe("on");
+    });
+
+    it("disposes a row removed after hydration", async () => {
+        const cleanup = vi.fn();
+        const items = createSignal([{ id: 1 }, { id: 2 }]);
+        const h = jsx as unknown as (type: unknown, props: unknown, ...children: unknown[]) => Child;
+        function Row(props: { item: { id: number } }): Child {
+            onCleanup(cleanup);
+            return jsx("li", null, props.item.id);
+        }
+        function List(): Child {
+            return jsx(
+                "ul",
+                null,
+                h(For, { each: items, keyBy: (item: { id: number }) => item.id }, (item: { id: number }) =>
+                    jsx(Row, { item }),
+                ),
+            );
+        }
+
+        const container = document.createElement("div");
+        container.innerHTML = renderToString(() => jsx(List, null));
+        hydrate(() => jsx(List, null), container);
+
+        items.set([items()[0] as { id: number }]);
+        await tick();
+
+        expect(container.querySelectorAll("li")).toHaveLength(1);
+        expect(cleanup).toHaveBeenCalledTimes(1);
     });
 
     it("replaces mismatched markup instead of crashing", () => {

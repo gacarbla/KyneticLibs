@@ -28,14 +28,14 @@ export interface ForProps<T> {
 }
 
 /** Internal bookkeeping for one rendered item. */
-interface ForItem<T> {
+export interface ForItem<T> {
     /** Value passed to the render function (a proxy for objects). */
     readonly item: T;
     /** Latest raw item. */
     current: T;
     /** Updates the proxy target in place, when the item is an object. */
     readonly update?: (next: T) => void;
-    readonly nodes: Node[];
+    nodes: Node[];
     readonly owner: Owner;
 }
 
@@ -43,8 +43,8 @@ interface ForItem<T> {
  * Keyed list with per-item ownership.
  *
  * Items keep their DOM nodes, effects and focus while they remain in the
- * collection. Items are re-created when their object identity changes, so a
- * new object (common with immutable updates) gets fresh content.
+ * collection. When an item object changes under the same key, the row updates
+ * in place through a shallow proxy.
  *
  * @example
  * ```tsx
@@ -59,6 +59,7 @@ export function For<T>(props: ForProps<T>): Node {
             kind: "each",
             each: props.each,
             render: props.children,
+            keyBy: props.keyBy,
             fallback: props.fallback,
         } as unknown as Node;
     }
@@ -66,16 +67,37 @@ export function For<T>(props: ForProps<T>): Node {
     const fragment = document.createDocumentFragment();
     const anchor = document.createComment("for");
     fragment.appendChild(anchor);
+    startForList(fragment, anchor, props);
+    return fragment;
+}
 
+/** State handed from hydration to the list reconciler. */
+export interface ForSeed<T> {
+    readonly items: Map<ForKey, ForItem<T>>;
+    readonly order: ForKey[];
+    readonly fallbackNodes?: Node[];
+    readonly fallbackOwner?: Owner | null;
+}
+
+/**
+ * Starts the keyed reconciler.
+ *
+ * @internal Shared by `<For>` and by hydration, which seeds the map with the
+ * rows already present in the server markup.
+ */
+export function startForList<T>(host: Node, anchor: Node, props: ForProps<T>, seed?: ForSeed<T>): void {
     const each = props.each;
     const keyBy = props.keyBy;
     const renderItem = props.children;
     const fallback = props.fallback;
 
-    let items = new Map<ForKey, ForItem<T>>();
-    let order: ForKey[] = [];
-    let fallbackNodes: Node[] = [];
-    let fallbackOwner: Owner | null = null;
+    let items = seed?.items ?? new Map<ForKey, ForItem<T>>();
+    let order = seed?.order ?? [];
+    let fallbackNodes = seed?.fallbackNodes ?? [];
+    let fallbackOwner = seed?.fallbackOwner ?? null;
+    // Hydrated lists already match the server markup; the first effect run
+    // must not touch the DOM.
+    let seeded = seed !== undefined;
 
     // Owned by the component that contains <For>, not by the list effect.
     onCleanup(() => {
@@ -91,6 +113,15 @@ export function For<T>(props: ForProps<T>): Node {
 
     createEffect(() => {
         const source = typeof each === "function" ? (each as () => readonly T[])() : each;
+
+        if (seeded) {
+            seeded = false;
+            return;
+        }
+
+        // Resolve the live parent: a fragment passed at creation is empty once
+        // its children move into the document.
+        const parent = anchor.parentNode ?? host;
 
         // Fast path: the keys did not move, so only item content can change.
         // This is the common case for immutable updates; it skips the map
@@ -170,7 +201,6 @@ export function For<T>(props: ForProps<T>): Node {
 
         // Reorder by walking backwards: a node already immediately before the
         // cursor is in place and costs no DOM mutation.
-        const parent = anchor.parentNode ?? fragment;
         if (items.size === 0 && keys.length > 0) {
             // First render (or refill after a clear): one DOM operation.
             const batch = document.createDocumentFragment();
@@ -210,8 +240,36 @@ export function For<T>(props: ForProps<T>): Node {
         items = next;
         order = keys;
     });
+}
 
-    return fragment;
+/**
+ * Builds the bookkeeping for one hydrated row.
+ *
+ * @internal Used by hydration.
+ */
+export function adoptForRow<T>(
+    item: T,
+    index: number,
+    render: (item: T, index: number) => Child,
+): { record: ForItem<T>; output: Child } {
+    let rendered: T = item;
+    let update: ((next: T) => void) | undefined;
+    if (isObject(item)) {
+        const reactive = reactiveItem(item);
+        rendered = reactive.value as T;
+        update = reactive.update as (next: T) => void;
+    }
+
+    const owner = createOwner();
+    return {
+        record: { item: rendered, current: item, update, nodes: [], owner },
+        output: runWithOwner(owner, () => render(rendered, index)),
+    };
+}
+
+/** Computes the reconciliation key for one item. */
+export function forKey<T>(item: T, index: number, keyBy?: (item: T, index: number) => ForKey): ForKey {
+    return keyBy ? keyBy(item, index) : defaultKey(item, index);
 }
 
 /** Reuses an existing row, updating its proxy in place when possible. */

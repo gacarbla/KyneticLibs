@@ -40,13 +40,13 @@ hydrate(() => createApp(router, i18n), container);
 - Elements, static attributes and text.
 - Dynamic text and attribute thunks (counter, locale switch, form values).
 - Context providers (i18n) and `RouterView` with eager routes.
+- Keyed list rows (`<For>`) and conditional branches (`<Show>`), adopted in place.
 - Event handlers and `ref` callbacks, attached to the adopted elements.
 - `onMount` callbacks, which run once the adopted tree is live.
 
-`<For>` and `<Show>` still fall back to a client render of the root during
-hydration; the demo uses dynamic child thunks (`{() => ...}`) where it needs a
-conditional so the whole page can hydrate in place. Fine-grained list and
-conditional hydration is the next milestone.
+`<For>` and `<Show>` are hydrated in place too: the server wraps them in comment markers, the
+client adopts the existing rows or branch, and the normal reconciler takes over from there.
+The demo uses both (conditional success view, facts list).
 
 ## Production notes
 

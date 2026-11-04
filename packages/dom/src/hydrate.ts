@@ -6,9 +6,11 @@ import {
     onCleanup,
     runWithOwner,
     type Dispose,
+    type Owner,
 } from "@kyneticweb/reactive";
 import { isVNode, type VNode } from "./vnode.js";
 import { addEvent, render, setRenderMode, setStaticProp, toNodes } from "./dom.js";
+import { adoptForRow, forKey, startForList, type ForItem, type ForKey, type ForProps } from "./components.js";
 import type { Child, Props } from "./types.js";
 
 /** Thrown when the server markup cannot be adopted. */
@@ -155,12 +157,139 @@ function hydrateNode(node: VNode, parent: Node, cursor: Node | null): Node | nul
         case "provider":
             return node.context.runWith(node.value, () => hydrateValue(node.children, parent, cursor));
         case "each":
+            return hydrateEach(node, parent, cursor);
         case "when":
+            return hydrateWhen(node, parent, cursor);
         case "portal":
         case "boundary":
         case "pending":
             throw new HydrationMismatch(`Hydration for "${node.kind}" nodes is not supported yet.`);
     }
+}
+
+/** Adopts the rows of a keyed list and starts its reconciler. */
+function hydrateEach(node: Extract<VNode, { kind: "each" }>, parent: Node, cursor: Node | null): Node | null {
+    const open = expectMarker(cursor, "k:for");
+    const source = (typeof node.each === "function" ? node.each() : node.each) as readonly unknown[];
+    let current: Node | null = open.nextSibling;
+
+    const items = new Map<ForKey, ForItem<unknown>>();
+    const order: ForKey[] = [];
+    let fallbackNodes: Node[] = [];
+    let fallbackOwner: Owner | null = null;
+
+    if (source.length === 0) {
+        const start = current;
+        fallbackOwner = createOwner();
+        current = runWithOwner(fallbackOwner, () => hydrateValue(node.fallback, parent, start));
+        fallbackNodes = collectBetween(parent, start, current);
+    } else {
+        for (let index = 0; index < source.length; index += 1) {
+            const item = source[index] as unknown;
+            const key = forKey(item, index, node.keyBy);
+            const row = adoptForRow(item, index, node.render as (item: unknown, index: number) => Child);
+            const start = current;
+            current = runWithOwner(row.record.owner, () => hydrateValue(row.output, parent, start));
+            for (const entry of collectBetween(parent, start, current)) {
+                row.record.nodes.push(entry);
+            }
+            items.set(key, row.record);
+            order.push(key);
+        }
+    }
+
+    const close = expectMarker(current, "/k:for");
+    startForList<unknown>(
+        parent,
+        close,
+        {
+            each: node.each as readonly unknown[] | (() => readonly unknown[]),
+            children: node.render as (item: unknown, index: number) => Child,
+            keyBy: node.keyBy,
+            fallback: node.fallback as Child,
+        } satisfies ForProps<unknown>,
+        { items, order, fallbackNodes, fallbackOwner },
+    );
+
+    return close.nextSibling;
+}
+
+/** Adopts one branch of a conditional and keeps it reactive. */
+function hydrateWhen(node: Extract<VNode, { kind: "when" }>, parent: Node, cursor: Node | null): Node | null {
+    const open = expectMarker(cursor, "k:when");
+    const close = findMarkerEnd(open, "k:when");
+    if (close === null) {
+        throw new HydrationMismatch("Unclosed <!--k:when--> marker.");
+    }
+
+    const visible = typeof node.when === "function" ? node.when() : node.when;
+    let rangeStart: Node | null = open.nextSibling;
+    let owner = createOwner();
+    runWithOwner(owner, () => hydrateValue(visible ? node.children : node.fallback, parent, rangeStart));
+
+    let initial = true;
+    createEffect(() => {
+        const next = typeof node.when === "function" ? node.when() : node.when;
+        if (initial) {
+            initial = false;
+            return;
+        }
+
+        disposeOwner(owner);
+        owner = createOwner();
+        removeBetween(parent, rangeStart, close);
+        const branch = (next ? node.children : node.fallback) as Child;
+        const nodes = runWithOwner(owner, () => toNodes(branch));
+        for (const node of nodes) {
+            parent.insertBefore(node, close);
+        }
+        rangeStart = nodes[0] ?? close;
+    });
+    onCleanup(() => disposeOwner(owner));
+
+    return close.nextSibling;
+}
+
+/** Reads a marker comment, failing with a clear mismatch error. */
+function expectMarker(node: Node | null, data: string): Comment {
+    if (node === null || node.nodeType !== Node.COMMENT_NODE || (node as Comment).data !== data) {
+        throw new HydrationMismatch(`Expected <!--${data}--> marker.`);
+    }
+    return node as Comment;
+}
+
+/** Finds the closing marker that matches `open`, honouring nesting. */
+function findMarkerEnd(open: Comment, label: string): Comment | null {
+    let depth = 1;
+    let node: Node | null = open.nextSibling;
+    while (node !== null) {
+        if (node.nodeType === Node.COMMENT_NODE) {
+            const data = (node as Comment).data;
+            if (data === label) {
+                depth += 1;
+            } else if (data === `/${label}`) {
+                depth -= 1;
+                if (depth === 0) {
+                    return node as Comment;
+                }
+            }
+        }
+        node = node.nextSibling;
+    }
+    return null;
+}
+
+/** Collects the direct children between two cursors. */
+function collectBetween(parent: Node, start: Node | null, end: Node | null): Node[] {
+    const nodes: Node[] = [];
+    let node = start;
+    while (node !== null && node !== end) {
+        if (node.parentNode === parent) {
+            nodes.push(node);
+        }
+        node = node.nextSibling;
+    }
+    return nodes;
 }
 
 /** Adopts one element, its dynamic attributes and its children. */

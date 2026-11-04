@@ -156,10 +156,11 @@ hydrate(() => <App />, document.getElementById("app")!);
 ```
 
 The server markup produced by `@kyneticweb/ssr` is adopted in place: elements, components,
-fragments, dynamic text/attributes, context providers, event handlers and `ref` callbacks
-keep their DOM nodes and only attach bindings. Collections, conditionals, portals and error
-boundaries fall back to a client render of the root, which is correct but recreates those
-nodes.
+fragments, dynamic text/attributes, context providers, event handlers, `ref` callbacks,
+keyed lists (`<For>`) and conditional branches (`<Show>`) keep their DOM nodes and only
+attach bindings. Lists and branches are delimited by comments (`<!--k:for-->`,
+`<!--k:when-->`), which is how hydration finds their extent. Portals, error boundaries and
+pending boundaries still fall back to a client render of the root.
 
 A universal node kept from a server or hydration pass can be inserted later: `toNodes`
 materializes it into real DOM instead of stringifying it.
@@ -183,7 +184,8 @@ effects it created, so repeated language switches or navigations never duplicate
 
 ## Limitations (0.1)
 
-- `hydrate` falls back to a client render for collections, conditionals, portals and boundaries.
+- `hydrate` falls back to a client render for portals, error boundaries and pending boundaries.
+- Lists and conditionals are adopted; rows created by a later update are normal client rows.
 - Lazy routes need `router.preload()` before hydration to avoid showing the loading view.
 - `For` updates a row in place when the item object changes under the same key; only
   top-level properties are reactive, so nested mutations need a new object or an accessor.

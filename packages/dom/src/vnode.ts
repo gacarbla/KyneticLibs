@@ -37,6 +37,7 @@ export interface EachVNode {
     readonly kind: "each";
     readonly each: readonly unknown[] | (() => readonly unknown[]);
     readonly render: (item: unknown, index: number) => unknown;
+    readonly keyBy?: (item: unknown, index: number) => string | number | object;
     readonly fallback?: unknown;
 }
 

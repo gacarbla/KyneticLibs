@@ -73,7 +73,9 @@ describe("renderToString", () => {
             ),
         );
 
-        expect(html).toBe("<ul><li>1</li><li>2</li><li>3</li><p>empty</p></ul>");
+        expect(html).toBe(
+            "<ul><!--k:for--><li>1</li><li>2</li><li>3</li><!--/k:for--><!--k:when--><p>empty</p><!--/k:when--></ul>",
+        );
     });
 
     it("renders context providers", () => {

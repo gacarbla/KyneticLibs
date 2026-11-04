@@ -1,4 +1,4 @@
-import type { Child } from "@kyneticweb/dom";
+import { For, type Child } from "@kyneticweb/dom";
 import { useI18n } from "../app.js";
 
 /**
@@ -8,15 +8,14 @@ import { useI18n } from "../app.js";
  */
 export default function AboutPage(): Child {
     const i18n = useI18n();
+    const facts = [i18n.t("about.fact1"), i18n.t("about.fact2"), i18n.t("about.fact3")];
 
     return (
         <section class="page">
             <h1>{i18n.t("about.title")}</h1>
             <p class="lead">{i18n.t("about.intro")}</p>
             <ul class="facts">
-                <li>{i18n.t("about.fact1")}</li>
-                <li>{i18n.t("about.fact2")}</li>
-                <li>{i18n.t("about.fact3")}</li>
+                <For each={facts}>{(fact) => <li>{fact}</li>}</For>
             </ul>
         </section>
     );
