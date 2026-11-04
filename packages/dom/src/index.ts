@@ -5,6 +5,7 @@
  */
 
 export { Fragment, isServerMode, jsx, render, setServerMode } from "./dom.js";
+export { hydrate } from "./hydrate.js";
 export { isVNode } from "./vnode.js";
 export type {
     BoundaryVNode,

@@ -152,7 +152,8 @@ function renderElement(node: Extract<VNode, { kind: "element" }>): string {
 
     for (const [key, value] of Object.entries(node.props)) {
         if (key === "innerHTML" || key === "html") {
-            innerHTML = value === null || value === undefined ? "" : String(value);
+            const resolved = typeof value === "function" ? (value as () => unknown)() : value;
+            innerHTML = resolved === null || resolved === undefined ? "" : String(resolved);
             continue;
         }
         attributes += renderAttribute(key, value);
@@ -171,21 +172,24 @@ function renderAttribute(key: string, value: unknown): string {
     if (key === "children" || key === "key" || key === "ref" || key.startsWith("on")) {
         return "";
     }
+
+    const resolved = typeof value === "function" ? (value as () => unknown)() : value;
+
     if (key === "class" || key === "className") {
-        const className = classValue(value);
+        const className = classValue(resolved);
         return className.length === 0 ? "" : ` class="${escapeAttribute(className)}"`;
     }
     if (key === "style") {
-        const style = styleValue(value);
+        const style = styleValue(resolved);
         return style.length === 0 ? "" : ` style="${escapeAttribute(style)}"`;
     }
-    if (value === null || value === undefined || value === false) {
+    if (resolved === null || resolved === undefined || resolved === false) {
         return "";
     }
-    if (value === true) {
+    if (resolved === true) {
         return ` ${attributeName(key)}=""`;
     }
-    return ` ${attributeName(key)}="${escapeAttribute(String(value))}"`;
+    return ` ${attributeName(key)}="${escapeAttribute(String(resolved))}"`;
 }
 
 /** Normalizes a class value. */

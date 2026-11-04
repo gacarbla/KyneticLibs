@@ -142,12 +142,26 @@ function Widget() {
 }
 ```
 
+## Hydration
+
+```tsx
+import { hydrate } from "@kyneticweb/dom";
+
+hydrate(() => <App />, document.getElementById("app")!);
+```
+
+The server markup produced by `@kyneticweb/ssr` is adopted in place: elements, components,
+fragments, dynamic text/attributes and context providers keep their DOM nodes and only attach
+bindings. Collections, conditionals, portals and error boundaries fall back to a client render
+of the root, which is correct but recreates those nodes.
+
 ## API
 
 | Export | Description |
 | --- | --- |
 | `jsx`, `Fragment` | Classic JSX factories. |
 | `render(component, container)` | Mounts a tree; returns a disposer. |
+| `hydrate(component, container)` | Adopts server markup and attaches bindings. |
 | `For`, `Show` | Keyed collections and conditional branches with per-item owners. |
 | `Portal`, `ErrorBoundary` | Overlays and render error isolation. |
 | `createContext`, `Context`, `useContext` | Synchronous context. |
@@ -156,9 +170,10 @@ function Widget() {
 
 ## Limitations (0.1)
 
+- `hydrate` falls back to a client render for collections, conditionals, portals and boundaries.
 - `For` re-creates a row when the item object changes under the same key; keep items stable.
 - Component props are eager; use accessors for reactive values.
-- No suspense, SSR or hydration yet.
+- No suspense or async rendering yet.
 - SVG elements use the SVG namespace; `<foreignObject>` children are an edge case still to cover.
 
 See [docs/architecture.md](../../docs/architecture.md) for the compiler contract.

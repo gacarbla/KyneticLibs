@@ -252,7 +252,7 @@ function eventName(prop: string, capture: boolean): string {
 }
 
 /** Writes a static attribute or property. */
-function setStaticProp(element: Element, key: string, value: unknown): void {
+export function setStaticProp(element: Element, key: string, value: unknown): void {
     if (key === "class" || key === "className") {
         element.setAttribute("class", classValue(value));
         return;

@@ -73,7 +73,7 @@ The monorepo also ships the first vertical slice of a TypeScript-native UI runti
 - `@kyneticweb/router` — typed routes, guards, lazy views and navigation links.
 - `@kyneticweb/i18n` — typed messages, plurals and locale formatting.
 - `@kyneticweb/forms` — typed form state, validation and accessible fields.
-- `@kyneticweb/ssr` — server-side rendering without a DOM.
+- `@kyneticweb/ssr` — server rendering and hydration without a DOM.
 - `@kyneticweb/compiler` — compiles TSX so each dynamic expression updates on its own.
 
 ```bash

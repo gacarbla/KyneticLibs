@@ -1,6 +1,7 @@
 # Kynetic Web runtime — architecture
 
-Status: **M1–M5 delivered**; **M6 in progress** (server rendering done, hydration next).
+Status: **M1–M5 delivered**; **M6 in progress** (server rendering and basic hydration done,
+async rendering and full list hydration next).
 The long-term goal is a TypeScript-native replacement for React with a better developer
 experience, not a clone.
 
@@ -68,6 +69,9 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
   stack. Pass a signal/accessor as `value` when the value must change at runtime.
 - `render(component, container)` returns a disposer that clears the container and releases
   every effect.
+- `hydrate(component, container)` rebuilds the server node tree in server mode, adopts the
+  existing DOM for elements/components/dynamic bindings/context, and falls back to a client
+  render when it finds a collection, conditional, portal or boundary.
 
 ## Benchmark
 

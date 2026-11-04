@@ -37,9 +37,11 @@ response.end(html);
 
 ## Limitations
 
+- Hydration adopts elements, components, dynamic text/attributes and context. Collections,
+  conditionals, portals and error boundaries currently fall back to a client render of the
+  root (correct, but those nodes are recreated).
 - Lazy routes and effect-driven views (for example `RouterView`) do not render on the server
   yet; they need Suspense-style async rendering.
-- Hydration is not implemented yet: the client currently re-renders over the server markup.
 - Do not return real DOM nodes from a component while rendering on the server.
 
 ## License
