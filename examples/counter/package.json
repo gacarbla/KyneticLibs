@@ -1,0 +1,20 @@
+{
+    "name": "@kyneticweb/example-counter",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@kyneticweb/compiler": "*",
+        "@kyneticweb/dom": "*",
+        "@kyneticweb/reactive": "*"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vite": "^8.0.0"
+    }
+}

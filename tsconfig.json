@@ -1,12 +1,32 @@
 {
     "files": [],
     "references": [
-        { "path": "packages/utils" },
-        { "path": "packages/container" },
-        { "path": "packages/counter" },
-        { "path": "packages/versions" },
-        { "path": "packages/parser" },
-        { "path": "packages/console" },
-        { "path": "packages/core" }
+        {
+            "path": "packages/utils"
+        },
+        {
+            "path": "packages/reactive"
+        },
+        {
+            "path": "packages/dom"
+        },
+        {
+            "path": "packages/container"
+        },
+        {
+            "path": "packages/counter"
+        },
+        {
+            "path": "packages/versions"
+        },
+        {
+            "path": "packages/parser"
+        },
+        {
+            "path": "packages/console"
+        },
+        {
+            "path": "packages/core"
+        }
     ]
 }

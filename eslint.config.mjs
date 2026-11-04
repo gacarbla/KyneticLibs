@@ -12,17 +12,22 @@ export default tseslint.config(
         rules: {
             "@typescript-eslint/no-explicit-any": "error",
             "@typescript-eslint/consistent-type-imports": "error",
+            "@typescript-eslint/no-namespace": ["error", { allowDeclarations: true }],
             eqeqeq: "error",
             "no-console": "off",
         },
     },
     {
-        files: ["**/*.mjs", "**/*.js"],
+        files: ["**/*.mjs", "**/*.js", "**/*.cjs"],
         languageOptions: {
             globals: {
                 console: "readonly",
                 process: "readonly",
                 URL: "readonly",
+                module: "writable",
+                require: "readonly",
+                exports: "writable",
+                __dirname: "readonly",
             },
         },
         rules: {

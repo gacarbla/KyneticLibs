@@ -6,7 +6,8 @@
         "rootDir": ".",
         "outDir": "./.typecheck",
         "tsBuildInfoFile": "./.typecheck/.tsbuildinfo",
-        "types": ["node"]
+        "types": ["node"],
+        "lib": ["ES2022", "DOM", "DOM.Iterable"]
     },
     "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "packages/*/examples/**/*.ts", "vitest.config.ts"],
     "exclude": ["**/dist/**", "**/node_modules/**"]

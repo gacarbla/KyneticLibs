@@ -19,7 +19,18 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const rootDirectory = fileURLToPath(new URL("..", import.meta.url));
 const packagesDirectory = join(rootDirectory, "packages");
 
-const PACKAGE_NAMES = ["utils", "container", "counter", "versions", "parser", "console", "core"];
+const PACKAGE_NAMES = [
+    "utils",
+    "reactive",
+    "dom",
+    "container",
+    "counter",
+    "versions",
+    "parser",
+    "console",
+    "core",
+    "compiler",
+];
 
 const failures = [];
 
@@ -32,6 +43,20 @@ for (const packageName of PACKAGE_NAMES) {
 
         if (manifest.type !== "module") {
             throw new Error(`"type" should be "module", found ${JSON.stringify(manifest.type)}`);
+        }
+
+        if (packageName === "compiler") {
+            for (const file of ["babel.cjs", "vite.js", "vite.d.ts"]) {
+                await access(join(packageDirectory, file));
+            }
+            const packed = listPackedFiles(manifest.name);
+            for (const file of ["babel.cjs", "vite.js"]) {
+                if (!packed.includes(file)) {
+                    throw new Error(`the tarball does not contain ${file}`);
+                }
+            }
+            console.log(`ok   ${manifest.name}`);
+            continue;
         }
 
         const exportEntry = manifest.exports?.["."] ?? {};

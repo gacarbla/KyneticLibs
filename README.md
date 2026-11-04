@@ -14,10 +14,13 @@ without extra setup.
 | Package | Description |
 | --- | --- |
 | [`@kyneticweb/console`](./packages/console) | Coloured logging, file persistence and an optional terminal UI. |
+| [`@kyneticweb/compiler`](./packages/compiler) | JSX compiler for the Kynetic DOM runtime (Babel + Vite). |
 | [`@kyneticweb/container`](./packages/container) | Basic, strict and dynamic typed containers. |
 | [`@kyneticweb/core`](./packages/core) | Composes the libraries into one fully typed object. |
 | [`@kyneticweb/counter`](./packages/counter) | Predictable counter with explicit operations. |
+| [`@kyneticweb/dom`](./packages/dom) | Fine-grained DOM renderer with typed TSX, components and context. |
 | [`@kyneticweb/parser`](./packages/parser) | Conversions between strings, numbers, dates, JSON, YAML and words. |
+| [`@kyneticweb/reactive`](./packages/reactive) | Signals, computed values, effects and ownership scopes. |
 | [`@kyneticweb/utils`](./packages/utils) | Date formatting, text wrapping and identifier helpers. |
 | [`@kyneticweb/versions`](./packages/versions) | Schema driven version parsing, validation and comparison. |
 
@@ -56,6 +59,24 @@ import { Parser } from "@kyneticweb/parser";
 ```
 
 CommonJS `require()` is not supported.
+
+## Web runtime
+
+The monorepo also ships the first vertical slice of a TypeScript-native UI runtime:
+
+- `@kyneticweb/reactive` — signals, computed values and effects with automatic tracking.
+- `@kyneticweb/dom` — direct DOM bindings, function components, context and lifecycle.
+- `@kyneticweb/compiler` — compiles TSX so each dynamic expression updates on its own.
+
+```bash
+npm install
+npm run build
+npm run dev:example   # http://localhost:5173
+```
+
+The example lives in [`examples/counter`](./examples/counter): counter, computed value, todo
+list with controlled input, context and a theme effect. The design and the current
+limitations are documented in [`docs/architecture.md`](./docs/architecture.md).
 
 ## Development
 

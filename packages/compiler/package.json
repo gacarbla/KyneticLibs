@@ -1,0 +1,58 @@
+{
+    "name": "@kyneticweb/compiler",
+    "version": "0.1.0",
+    "description": "JSX compiler for the Kynetic DOM runtime: wraps dynamic expressions in fine-grained thunks.",
+    "type": "module",
+    "exports": {
+        "./babel": "./babel.cjs",
+        "./vite": {
+            "types": "./vite.d.ts",
+            "import": "./vite.js"
+        }
+    },
+    "files": [
+        "babel.cjs",
+        "vite.js",
+        "vite.d.ts"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "jsx",
+        "compiler",
+        "babel",
+        "vite",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/compiler"
+    },
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
+    "license": "CUSTOM-NON-COMMERCIAL",
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@babel/core": "^8.1.0"
+    },
+    "peerDependencies": {
+        "vite": "^7.0.0 || ^8.0.0"
+    },
+    "peerDependenciesMeta": {
+        "vite": {
+            "optional": true
+        }
+    }
+}

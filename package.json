@@ -5,7 +5,8 @@
     "description": "Kynetic Web Libraries Monorepo",
     "type": "module",
     "workspaces": [
-        "packages/*"
+        "packages/*",
+        "examples/*"
     ],
     "repository": {
         "type": "git",
@@ -29,7 +30,9 @@
         "clean": "tsc -b --clean && node scripts/clean.mjs",
         "test": "vitest run",
         "test:watch": "vitest",
-        "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+        "typecheck": "tsc -b && tsc -p tsconfig.test.json && tsc -p examples/counter/tsconfig.json",
+        "dev:example": "npm run dev -w @kyneticweb/example-counter",
+        "build:example": "npm run build -w @kyneticweb/example-counter",
         "lint": "eslint .",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
@@ -39,14 +42,20 @@
         "release": "npm run build && changeset publish"
     },
     "devDependencies": {
+        "@babel/core": "^8.1.0",
+        "@babel/plugin-syntax-jsx": "^8.0.1",
+        "@babel/plugin-syntax-typescript": "^8.0.3",
         "@changesets/cli": "^3.0.3",
         "@eslint/js": "^10.0.0",
+        "@types/babel__core": "^7.20.5",
         "@types/node": "^24.10.0",
         "eslint": "^10.0.0",
         "eslint-config-prettier": "^10.1.0",
+        "happy-dom": "^21.0.4",
         "prettier": "^3.9.10",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.72.1",
+        "vite": "^8.3.5",
         "vitest": "^5.1.0"
     }
 }
