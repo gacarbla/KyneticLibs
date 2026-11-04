@@ -21,6 +21,7 @@ without extra setup.
 | [`@kyneticweb/dom`](./packages/dom) | Fine-grained DOM renderer with typed TSX, components and context. |
 | [`@kyneticweb/parser`](./packages/parser) | Conversions between strings, numbers, dates, JSON, YAML and words. |
 | [`@kyneticweb/reactive`](./packages/reactive) | Signals, computed values, effects and ownership scopes. |
+| [`@kyneticweb/router`](./packages/router) | Typed routing with path, hash and memory strategies. |
 | [`@kyneticweb/utils`](./packages/utils) | Date formatting, text wrapping and identifier helpers. |
 | [`@kyneticweb/versions`](./packages/versions) | Schema driven version parsing, validation and comparison. |
 
@@ -66,6 +67,7 @@ The monorepo also ships the first vertical slice of a TypeScript-native UI runti
 
 - `@kyneticweb/reactive` — signals, computed values and effects with automatic tracking.
 - `@kyneticweb/dom` — direct DOM bindings, function components, context and lifecycle.
+- `@kyneticweb/router` — typed routes, guards, lazy views and navigation links.
 - `@kyneticweb/compiler` — compiles TSX so each dynamic expression updates on its own.
 
 ```bash

@@ -7,7 +7,20 @@
         "outDir": "./.typecheck",
         "tsBuildInfoFile": "./.typecheck/.tsbuildinfo",
         "types": ["node"],
-        "lib": ["ES2022", "DOM", "DOM.Iterable"]
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "baseUrl": ".",
+        "paths": {
+            "@kyneticweb/console": ["packages/console/src/index.ts"],
+            "@kyneticweb/container": ["packages/container/src/index.ts"],
+            "@kyneticweb/core": ["packages/core/src/index.ts"],
+            "@kyneticweb/counter": ["packages/counter/src/index.ts"],
+            "@kyneticweb/dom": ["packages/dom/src/index.ts"],
+            "@kyneticweb/parser": ["packages/parser/src/index.ts"],
+            "@kyneticweb/reactive": ["packages/reactive/src/index.ts"],
+            "@kyneticweb/router": ["packages/router/src/index.ts"],
+            "@kyneticweb/utils": ["packages/utils/src/index.ts"],
+            "@kyneticweb/versions": ["packages/versions/src/index.ts"]
+        }
     },
     "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "packages/*/examples/**/*.ts", "vitest.config.ts"],
     "exclude": ["**/dist/**", "**/node_modules/**"]

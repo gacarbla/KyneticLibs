@@ -1,6 +1,6 @@
 # Kynetic Web runtime — architecture
 
-Status: **M1–M3 delivered** (reactivity, DOM runtime, compiler and a working example).
+Status: **M1–M4 delivered**, **M5 in progress** (router done, i18n and forms next).
 The long-term goal is a TypeScript-native replacement for React with a better developer
 experience, not a clone.
 
@@ -20,8 +20,9 @@ experience, not a clone.
 ```
 @kyneticweb/reactive     signals, computed, effects, batch, owners
 └── @kyneticweb/dom      jsx runtime, elements, components, context, lifecycle
+    ├── @kyneticweb/router     typed routes, guards, lazy views, links
     ├── @kyneticweb/compiler   Babel + Vite plugin (dynamic expression thunks)
-    └── (future) router, i18n, forms, ssr, test, devtools, ui
+    └── (future) i18n, forms, ssr, test, devtools, ui
 ```
 
 ## Compiler contract
@@ -117,7 +118,6 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 | Milestone | Scope |
 | --- | --- |
 | M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components |
-| M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) |
-| M6 | `renderToString`, hydration, streaming |
+| M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) || M6 | `renderToString`, hydration, streaming |
 | M7 | Test renderer, devtools, component library |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |

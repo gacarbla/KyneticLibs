@@ -23,6 +23,7 @@ const PACKAGE_NAMES = [
     "utils",
     "reactive",
     "dom",
+    "router",
     "container",
     "counter",
     "versions",
