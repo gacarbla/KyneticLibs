@@ -166,7 +166,7 @@ function renderServerView(router: Router<RouteMap, RouteDefinitions>, props: Rou
     if (resolved !== undefined) {
         return resolved();
     }
-    return createPending(loadView(load), props.loading ?? null);
+    return createPending(loadView(load), props.loading ?? null, () => renderServerView(router, props));
 }
 
 /** Props accepted by {@link Link}. */

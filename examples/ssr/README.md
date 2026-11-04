@@ -14,7 +14,7 @@ npm run start:ssr    # http://localhost:4173
 Routes:
 
 - `/` — counter, hydration badge and locale switcher.
-- `/about` — lazily loaded route (`import()`), awaited by `renderToStringAsync`.
+- `/about` - lazily loaded route (`import()`), awaited by the stream before its subtree.
 - `/contact` — validated form whose fields update through signals.
 
 ## How it works
@@ -22,9 +22,9 @@ Routes:
 1. The Node server reads `dist/client/index.html` once.
 2. For each request it creates a **new** router (`createMemoryStrategy(url)`) and
    a **new** i18n instance, so no state leaks between requests.
-3. `renderToStringAsync` renders the tree. Lazy routes become pending nodes: the
-   server emits the loading view, waits for `import()`, and renders again.
-4. The HTML replaces `<!--app-->` in the template.
+3. `renderToStream` writes the application shell as soon as it is ready. Lazy routes become
+   pending nodes: the stream awaits `import()` and then renders only that subtree.
+4. The template is split at `<!--app-->`; the second half is written when the stream ends.
 5. The browser starts the router with `createPathStrategy()` **before**
    hydrating, so `RouterView` resolves the same route the server used and adopts
    its DOM instead of rebuilding it.

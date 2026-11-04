@@ -221,6 +221,8 @@ export function createNode(type: unknown, props: unknown, children: Child[]): Ch
  *
  * @param promise Work that must settle before the final pass.
  * @param fallback Markup shown by `renderToString` and while loading.
+ * @param retry Re-renders the subtree once the promise settles. Required by
+ * `renderToStream`; `renderToStringAsync` works without it.
  * @returns A pending server node.
  *
  * @example
@@ -228,15 +230,19 @@ export function createNode(type: unknown, props: unknown, children: Child[]): Ch
  * function Profile(props: { id: string }) {
  *     const user = cache.get(props.id);
  *     if (user !== undefined) return <ProfileCard user={user} />;
- *     return createPending(fetchUser(props.id).then((value) => cache.set(props.id, value)), <Spinner />);
+ *     return createPending(
+ *         fetchUser(props.id).then((value) => cache.set(props.id, value)),
+ *         <Spinner />,
+ *         () => <ProfileCard user={cache.get(props.id)!} />,
+ *     );
  * }
  * ```
  */
-export function createPending(promise: Promise<unknown>, fallback: Child = null): Child {
+export function createPending(promise: Promise<unknown>, fallback: Child = null, retry?: () => unknown): Child {
     if (mode === "client") {
         throw new Error("createPending() is only available while rendering on the server.");
     }
-    return { kind: "pending", promise, children: fallback } as unknown as Child;
+    return { kind: "pending", promise, children: fallback, retry } as unknown as Child;
 }
 
 /**

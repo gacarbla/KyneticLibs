@@ -4,7 +4,7 @@ import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createI18n } from "@kyneticweb/i18n";
 import { createMemoryStrategy, createRouter } from "@kyneticweb/router";
-import { renderToStringAsync } from "@kyneticweb/ssr";
+import { renderToStream } from "@kyneticweb/ssr";
 import { createApp, routes } from "./app.js";
 import { messages } from "./messages.js";
 
@@ -12,6 +12,15 @@ import { messages } from "./messages.js";
 const clientDirectory = fileURLToPath(new URL("../client/", import.meta.url));
 const template = await readFile(join(clientDirectory, "index.html"), "utf8");
 const port = Number(process.env["PORT"] ?? 4173);
+
+/** Placeholder replaced by the server-rendered application. */
+const APP_MARKER = "<!--app-->";
+const markerIndex = template.indexOf(APP_MARKER);
+if (markerIndex === -1) {
+    throw new Error(`index.html must contain ${APP_MARKER}.`);
+}
+const templateStart = template.slice(0, markerIndex);
+const templateEnd = template.slice(markerIndex + APP_MARKER.length);
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
     ".css": "text/css; charset=utf-8",
@@ -80,12 +89,23 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     });
     router.start();
 
+    const stream = renderToStream(() => createApp(router, i18n));
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.write(templateStart);
+
+    const reader = stream.getReader();
     try {
-        const html = await renderToStringAsync(() => createApp(router, i18n));
-        // A function replacement avoids `$&` patterns inside the markup.
-        const page = template.replace("<!--app-->", () => html);
-        response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-        response.end(page);
+        for (;;) {
+            const { value, done } = await reader.read();
+            if (done === true) {
+                break;
+            }
+            response.write(value);
+        }
+        response.end(templateEnd);
+    } catch (error) {
+        await reader.cancel().catch(() => undefined);
+        throw error;
     } finally {
         router.stop();
     }

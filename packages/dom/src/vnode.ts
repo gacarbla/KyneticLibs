@@ -76,11 +76,14 @@ export interface ProviderVNode {
  * Synchronous rendering emits `children` (usually a loading placeholder).
  * `renderToStringAsync` awaits `promise` and renders again, so the component
  * behind the boundary must cache its result once the promise settles.
+ * `renderToStream` can resolve just this subtree when `retry` is provided.
  */
 export interface PendingVNode {
     readonly kind: "pending";
     readonly promise: Promise<unknown>;
     readonly children: unknown;
+    /** Re-renders the boundary after the promise settles. */
+    readonly retry?: () => unknown;
 }
 
 /** Any server node. */

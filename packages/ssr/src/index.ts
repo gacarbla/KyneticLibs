@@ -4,4 +4,10 @@
  * Server-side rendering without a DOM.
  */
 
-export { renderToString, renderToStringAsync, type RenderOptions } from "./render-to-string.js";
+export {
+    renderChunks,
+    renderToStream,
+    renderToString,
+    renderToStringAsync,
+    type RenderOptions,
+} from "./render-to-string.js";

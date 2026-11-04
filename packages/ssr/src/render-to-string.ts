@@ -164,12 +164,7 @@ function renderNode(node: VNode, tasks: Promise<unknown>[] | null): string {
         case "element":
             return renderElement(node, tasks);
         case "component": {
-            const props = { ...node.props };
-            if (node.children.length === 1) {
-                props["children"] = node.children[0];
-            } else if (node.children.length > 1) {
-                props["children"] = node.children;
-            }
+            const props = componentProps(node);
             return renderValue((node.component as (props: Record<string, unknown>) => unknown)(props), tasks);
         }
         case "fragment":
@@ -209,6 +204,20 @@ function renderNode(node: VNode, tasks: Promise<unknown>[] | null): string {
 
 /** Renders one element and its children. */
 function renderElement(node: Extract<VNode, { kind: "element" }>, tasks: Promise<unknown>[] | null): string {
+    const { attributes, innerHTML } = elementHead(node);
+    const tag = node.tag;
+    if (VOID_ELEMENTS.has(tag)) {
+        return `<${tag}${attributes}>`;
+    }
+    const content = innerHTML ?? renderValue(node.children, tasks);
+    return `<${tag}${attributes}>${content}</${tag}>`;
+}
+
+/** Serializes the attributes of an element and extracts `innerHTML`. */
+function elementHead(node: Extract<VNode, { kind: "element" }>): {
+    attributes: string;
+    innerHTML: string | undefined;
+} {
     let attributes = "";
     let innerHTML: string | undefined;
 
@@ -221,12 +230,18 @@ function renderElement(node: Extract<VNode, { kind: "element" }>, tasks: Promise
         attributes += renderAttribute(key, value);
     }
 
-    const tag = node.tag;
-    if (VOID_ELEMENTS.has(tag)) {
-        return `<${tag}${attributes}>`;
+    return { attributes, innerHTML };
+}
+
+/** Builds the props object a component receives, including children. */
+function componentProps(node: Extract<VNode, { kind: "component" }>): Record<string, unknown> {
+    const props = { ...node.props };
+    if (node.children.length === 1) {
+        props["children"] = node.children[0];
+    } else if (node.children.length > 1) {
+        props["children"] = node.children;
     }
-    const content = innerHTML ?? renderValue(node.children, tasks);
-    return `<${tag}${attributes}>${content}</${tag}>`;
+    return props;
 }
 
 /** Serializes one attribute. */
@@ -317,4 +332,219 @@ function escapeText(value: string): string {
 /** Escapes attribute values. */
 function escapeAttribute(value: string): string {
     return escapeText(value).replace(/"/g, "&quot;");
+}
+
+// ---------------------------------------------------------------------------
+// Streaming
+// ---------------------------------------------------------------------------
+
+/** Context values that apply to a subtree while streaming. */
+interface ServerEnv {
+    readonly context: { runWith<T>(value: unknown, render: () => T): T };
+    readonly value: unknown;
+    readonly parent: ServerEnv | null;
+}
+
+/**
+ * Runs `fn` with every provider in `env` active.
+ *
+ * The outermost provider is applied first so the innermost one wins, matching
+ * the synchronous renderer.
+ */
+function runWithEnv<T>(env: ServerEnv | null, fn: () => T): T {
+    if (env === null) {
+        return fn();
+    }
+    return runFromOuter(env, fn);
+}
+
+/** Applies the parent chain before the given entry. */
+function runFromOuter<T>(env: ServerEnv, fn: () => T): T {
+    const inner = (): T => env.context.runWith(env.value, fn);
+    return env.parent === null ? inner() : runFromOuter(env.parent, inner);
+}
+
+/**
+ * Runs user code with server mode enabled and the streaming context applied.
+ *
+ * State is never held across an `await`, so concurrent streams cannot observe
+ * each other's mode or provider stack.
+ */
+function invoke<T>(env: ServerEnv | null, fn: () => T): T {
+    const previousDom = setDomServerMode(true);
+    const previousReactive = setReactiveServerMode(true);
+    try {
+        return runWithEnv(env, fn);
+    } finally {
+        setDomServerMode(previousDom);
+        setReactiveServerMode(previousReactive);
+    }
+}
+
+/**
+ * Renders a component tree as HTML chunks.
+ *
+ * The shell is emitted as soon as it is ready; a pending boundary awaits its
+ * promise and then renders only its own subtree through `retry`. That keeps
+ * time-to-first-byte low without re-rendering the whole page.
+ *
+ * Use it when you need a Node stream:
+ *
+ * ```ts
+ * Readable.from(renderChunks(() => <App />)).pipe(response);
+ * ```
+ *
+ * @param component Root component.
+ * @param options Extra rendering options.
+ */
+export async function* renderChunks(
+    component: () => unknown,
+    options: RenderOptions = {},
+): AsyncGenerator<string, void, unknown> {
+    if (options.doctype === true) {
+        yield "<!doctype html>";
+    }
+    yield* renderValueChunks(invoke(null, component), null);
+}
+
+/**
+ * Streams a component tree as UTF-8 HTML.
+ *
+ * @param component Root component.
+ * @param options Extra rendering options.
+ * @returns A web stream of encoded chunks.
+ *
+ * @example
+ * ```ts
+ * const stream = renderToStream(() => <App />, { doctype: true });
+ * await stream.pipeTo(new WritableStream({ write: (chunk) => response.write(chunk) }));
+ * ```
+ */
+export function renderToStream(component: () => unknown, options: RenderOptions = {}): ReadableStream<Uint8Array> {
+    const chunks = renderChunks(component, options);
+    const encoder = new TextEncoder();
+
+    return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+            const next = await chunks.next();
+            if (next.done === true) {
+                controller.close();
+                return;
+            }
+            controller.enqueue(encoder.encode(next.value));
+        },
+        async cancel() {
+            await chunks.return(undefined);
+        },
+    });
+}
+
+/** Streams a child value. */
+async function* renderValueChunks(value: unknown, env: ServerEnv | null): AsyncGenerator<string, void, unknown> {
+    if (value === null || value === undefined || value === false || value === true) {
+        return;
+    }
+    if (typeof value === "function") {
+        yield* renderValueChunks(
+            invoke(env, () => (value as () => unknown)()),
+            env,
+        );
+        return;
+    }
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            yield* renderValueChunks(item, env);
+        }
+        return;
+    }
+    if (isVNode(value)) {
+        yield* renderNodeChunks(value, env);
+        return;
+    }
+    if (typeof value === "string" || typeof value === "number") {
+        yield escapeText(String(value));
+        return;
+    }
+    throw new Error(`Cannot render value of type "${typeof value}" on the server.`);
+}
+
+/** Streams one node. */
+async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGenerator<string, void, unknown> {
+    switch (node.kind) {
+        case "element": {
+            const head = invoke(env, () => elementHead(node));
+            if (VOID_ELEMENTS.has(node.tag)) {
+                yield `<${node.tag}${head.attributes}>`;
+                return;
+            }
+            yield `<${node.tag}${head.attributes}>`;
+            if (head.innerHTML !== undefined) {
+                yield head.innerHTML;
+            } else {
+                yield* renderValueChunks(node.children, env);
+            }
+            yield `</${node.tag}>`;
+            return;
+        }
+        case "component": {
+            const props = componentProps(node);
+            const output = invoke(env, () => (node.component as (props: Record<string, unknown>) => unknown)(props));
+            yield* renderValueChunks(output, env);
+            return;
+        }
+        case "fragment":
+            yield* renderValueChunks(node.children, env);
+            return;
+        case "each": {
+            const items = invoke(env, () =>
+                typeof node.each === "function" ? node.each() : node.each,
+            ) as readonly unknown[];
+            yield "<!--k:for-->";
+            if (items.length === 0) {
+                yield* renderValueChunks(node.fallback, env);
+            } else {
+                for (let index = 0; index < items.length; index += 1) {
+                    const item = items[index];
+                    const output = invoke(env, () => node.render(item, index));
+                    yield* renderValueChunks(output, env);
+                }
+            }
+            yield "<!--/k:for-->";
+            return;
+        }
+        case "when": {
+            const visible = invoke(env, () => (typeof node.when === "function" ? node.when() : node.when));
+            yield "<!--k:when-->";
+            yield* renderValueChunks(visible ? node.children : node.fallback, env);
+            yield "<!--/k:when-->";
+            return;
+        }
+        case "portal":
+            yield* renderValueChunks(node.children, env);
+            return;
+        case "provider":
+            yield* renderValueChunks(node.children, { context: node.context, value: node.value, parent: env });
+            return;
+        case "boundary": {
+            try {
+                yield* renderValueChunks(node.children, env);
+            } catch (error) {
+                yield* renderValueChunks(
+                    node.fallback(error instanceof Error ? error : new Error(String(error)), () => undefined),
+                    env,
+                );
+            }
+            return;
+        }
+        case "pending": {
+            if (node.retry === undefined) {
+                throw new Error(
+                    "renderToStream needs createPending(promise, fallback, retry). Use renderToStringAsync for pending nodes without a retry.",
+                );
+            }
+            await node.promise;
+            yield* renderValueChunks(invoke(env, node.retry), env);
+            return;
+        }
+    }
 }

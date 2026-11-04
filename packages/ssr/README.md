@@ -15,7 +15,7 @@ npm install @kyneticweb/ssr
 ## Usage
 
 ```tsx
-import { renderToString, renderToStringAsync } from "@kyneticweb/ssr";
+import { renderToString, renderToStringAsync, renderToStream } from "@kyneticweb/ssr";
 
 // Static tree.
 const html = renderToString(() => <App />, { doctype: true });
@@ -23,10 +23,39 @@ const html = renderToString(() => <App />, { doctype: true });
 // Tree with lazy work (routes, data boundaries).
 const asyncHtml = await renderToStringAsync(() => <App />, { doctype: true });
 response.end(asyncHtml);
+
+// Stream the shell before pending work resolves.
+const stream = renderToStream(() => <App />, { doctype: true });
 ```
 
 `renderToString` renders a pending boundary as its fallback. `renderToStringAsync` awaits
 every pending promise and renders again, up to 10 passes.
+
+## Streaming
+
+```ts
+import { renderToStream } from "@kyneticweb/ssr";
+
+const stream = renderToStream(() => <App />);
+await stream.pipeTo(
+    new WritableStream({
+        write(chunk) {
+            response.write(chunk);
+        },
+    }),
+);
+```
+
+The serializer emits the shell as soon as it is ready. When it reaches a pending boundary it
+awaits that promise and then renders only the boundary's subtree through its `retry`
+callback, so the rest of the page is not rendered twice. Context values travel with the
+subtree, and server mode is only active around synchronous user code, which keeps concurrent
+streams isolated.
+
+For Node streams: `Readable.from(renderChunks(() => <App />)).pipe(response)`.
+
+Streaming is in order: content after a pending boundary waits for it. Out-of-order
+boundaries (placeholder plus a script that swaps content later) are not implemented yet.
 
 ## Async boundaries
 
@@ -41,13 +70,16 @@ function Profile(props: { id: string }) {
     return createPending(
         fetchUser(props.id).then((value) => cache.set(props.id, value)),
         <Spinner />,
+        () => <ProfileCard user={cache.get(props.id)!} />,
     );
 }
 ```
 
-The promise must cache its result: the second pass renders synchronously. `RouterView` uses
-this mechanism for lazy routes, and `router.preload()` resolves the current route before
-hydration so the client's first render matches the server markup.
+The promise must cache its result: the second pass renders synchronously. The third
+argument (`retry`) lets `renderToStream` resolve only that subtree; `renderToStringAsync`
+works without it. `RouterView` uses this mechanism for lazy routes, and `router.preload()`
+resolves the current route before hydration so the client's first render matches the server
+markup.
 
 ## Behaviour
 
@@ -83,10 +115,12 @@ branch, and then lets the normal reactive reconciler take over.
 
 ## Limitations
 
-- Portals, error boundaries and pending boundaries currently fall back to a client render of
-  the root (correct, but those nodes are recreated).
-- Lazy routes need `router.preload()` (or `renderToStringAsync`) before hydration to avoid a
-  loading flash.
+- Portals, error boundaries and pending boundaries are not hydrated in place; they fall back
+  to a client render of the root.
+- `renderToStream` is in order and requires a `retry` on every pending node. Out-of-order
+  streaming is not implemented yet.
+- Lazy routes need `router.preload()` (or `renderToStringAsync`/`renderToStream`) before
+  hydration to avoid a loading flash.
 - Do not return real DOM nodes from a component while rendering on the server.
 
 ## License
