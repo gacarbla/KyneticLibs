@@ -120,7 +120,8 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 
 | Milestone | Scope |
 | --- | --- |
-| M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components |
-| M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) || M6 | `renderToString`, hydration, streaming |
+| M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components — **delivered** |
+| M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) — **delivered** |
+| M6 | `renderToString`, hydration, streaming |
 | M7 | Test renderer, devtools, component library |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |
