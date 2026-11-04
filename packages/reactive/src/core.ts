@@ -39,6 +39,9 @@ export interface Owner {
 let currentComputation: Computation | null = null;
 let currentOwner: Owner | null = null;
 
+/** When true, effects are not executed (server rendering). */
+let serverMode = false;
+
 // ---------------------------------------------------------------------------
 // Tracking
 // ---------------------------------------------------------------------------
@@ -374,6 +377,13 @@ function runEffect(computation: Computation): void {
     }
 }
 
+/** Enables or disables server mode and returns the previous value. */
+export function setServerMode(enabled: boolean): boolean {
+    const previous = serverMode;
+    serverMode = enabled;
+    return previous;
+}
+
 /**
  * Runs `fn` immediately and again whenever a reactive value it read changes.
  *
@@ -390,6 +400,10 @@ function runEffect(computation: Computation): void {
  * ```
  */
 export function createEffect(fn: () => unknown): Dispose {
+    if (serverMode) {
+        return () => undefined;
+    }
+
     const computation: Computation = {
         kind: "effect",
         fn,

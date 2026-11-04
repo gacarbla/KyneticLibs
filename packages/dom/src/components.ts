@@ -8,7 +8,7 @@ import {
     type Owner,
 } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
-import { toNodes } from "./dom.js";
+import { isServerMode, toNodes } from "./dom.js";
 import type { Child } from "./types.js";
 
 /** Key used to reconcile list items. */
@@ -53,6 +53,15 @@ interface ForItem<T> {
  * ```
  */
 export function For<T>(props: ForProps<T>): Node {
+    if (isServerMode()) {
+        return {
+            kind: "each",
+            each: props.each,
+            render: props.children,
+            fallback: props.fallback,
+        } as unknown as Node;
+    }
+
     const fragment = document.createDocumentFragment();
     const anchor = document.createComment("for");
     fragment.appendChild(anchor);
@@ -205,6 +214,15 @@ export interface ShowProps {
  * ```
  */
 export function Show(props: ShowProps): Node {
+    if (isServerMode()) {
+        return {
+            kind: "when",
+            when: props.when,
+            children: props.children,
+            fallback: props.fallback,
+        } as unknown as Node;
+    }
+
     const fragment = document.createDocumentFragment();
     const anchor = document.createComment("show");
     fragment.appendChild(anchor);
@@ -261,6 +279,10 @@ export interface PortalProps {
  * ```
  */
 export function Portal(props: PortalProps): Node {
+    if (isServerMode()) {
+        return { kind: "portal", children: resolveChild(props.children) } as unknown as Node;
+    }
+
     const placeholder = document.createComment("portal");
     const nodes = toNodes(props.children);
 
@@ -300,6 +322,14 @@ export interface ErrorBoundaryProps {
  * ```
  */
 export function ErrorBoundary(props: ErrorBoundaryProps): Node {
+    if (isServerMode()) {
+        return {
+            kind: "boundary",
+            fallback: props.fallback,
+            children: props.children,
+        } as unknown as Node;
+    }
+
     const fragment = document.createDocumentFragment();
     const anchor = document.createComment("boundary");
     fragment.appendChild(anchor);

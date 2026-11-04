@@ -1,6 +1,6 @@
 # Kynetic Web runtime — architecture
 
-Status: **M1–M5 delivered** (reactivity, DOM, compiler, router, i18n, forms). **M6 (SSR) next.**
+Status: **M1–M5 delivered**; **M6 in progress** (server rendering done, hydration next).
 The long-term goal is a TypeScript-native replacement for React with a better developer
 experience, not a clone.
 
@@ -23,8 +23,9 @@ experience, not a clone.
     ├── @kyneticweb/router     typed routes, guards, lazy views, links
     ├── @kyneticweb/i18n       typed messages, plurals, locale formatting
     ├── @kyneticweb/forms      typed form state, validation, accessible fields
+    ├── @kyneticweb/ssr        server rendering without a DOM
     ├── @kyneticweb/compiler   Babel + Vite plugin (dynamic expression thunks)
-    └── (future) ssr, test, devtools, ui
+    └── (future) test, devtools, ui
 ```
 
 ## Compiler contract

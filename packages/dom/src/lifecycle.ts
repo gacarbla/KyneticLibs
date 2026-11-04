@@ -1,4 +1,5 @@
 import { onCleanup } from "@kyneticweb/reactive";
+import { isServerMode } from "./dom.js";
 
 /**
  * Runs `fn` after the current component has been inserted into the DOM.
@@ -9,6 +10,10 @@ import { onCleanup } from "@kyneticweb/reactive";
  * @param fn Callback to run once.
  */
 export function onMount(fn: () => void): void {
+    if (isServerMode()) {
+        return;
+    }
+
     let disposed = false;
     onCleanup(() => {
         disposed = true;

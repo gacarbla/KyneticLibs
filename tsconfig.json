@@ -20,6 +20,9 @@
             "path": "packages/forms"
         },
         {
+            "path": "packages/ssr"
+        },
+        {
             "path": "packages/container"
         },
         {

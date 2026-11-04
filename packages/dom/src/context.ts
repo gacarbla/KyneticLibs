@@ -1,4 +1,5 @@
 import { resolveChild } from "./child.js";
+import { isServerMode } from "./dom.js";
 import type { Child } from "./types.js";
 
 /**
@@ -33,13 +34,26 @@ export class Context<T> {
      * stack, so nested components read it synchronously.
      */
     public readonly Provider = (props: { value: T; children?: Child }): Child => {
-        this.#stack.push(props.value);
+        if (isServerMode()) {
+            return {
+                kind: "provider",
+                context: this,
+                value: props.value,
+                children: props.children,
+            } as unknown as Child;
+        }
+        return this.runWith(props.value, () => resolveChild(props.children));
+    };
+
+    /** Runs `render` with `value` on the stack. */
+    public runWith<R>(value: T, render: () => R): R {
+        this.#stack.push(value);
         try {
-            return resolveChild(props.children);
+            return render();
         } finally {
             this.#stack.pop();
         }
-    };
+    }
 
     /** Reads the active value or the default one. */
     public read(): T {

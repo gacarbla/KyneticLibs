@@ -91,6 +91,25 @@ const SVG_TAGS = new Set([
 /** Style properties applied per element, so updates can remove stale ones. */
 const APPLIED_STYLES = new WeakMap<Element, Set<string>>();
 
+/**
+ * Server mode: `jsx` returns plain nodes instead of DOM elements.
+ *
+ * @internal Used by `@kyneticweb/ssr`.
+ */
+let serving = false;
+
+/** Enables or disables server mode and returns the previous value. */
+export function setServerMode(enabled: boolean): boolean {
+    const previous = serving;
+    serving = enabled;
+    return previous;
+}
+
+/** Reports whether server mode is active. */
+export function isServerMode(): boolean {
+    return serving;
+}
+
 /** Props that must be written as DOM properties, not attributes. */
 const PROPERTIES = new Set(["value", "checked", "selected", "disabled", "multiple", "readOnly", "indeterminate"]);
 
@@ -108,6 +127,20 @@ export function jsx(type: string, props?: Props | null, ...children: Child[]): N
 export function jsx<P extends object>(type: Component<P>, props?: P | null, ...children: Child[]): Child;
 export function jsx(type: unknown, props?: unknown, ...children: Child[]): Child;
 export function jsx(type: unknown, props?: unknown, ...children: Child[]): Child {
+    if (serving) {
+        const attrs = { ...((props as Props | null | undefined) ?? {}) };
+        const kids = Object.hasOwn(attrs, "children") ? [...children, attrs["children"]] : children;
+        delete attrs["children"];
+        if (typeof type === "function") {
+            return {
+                kind: "component",
+                component: type as (props: never) => unknown,
+                props: attrs,
+                children: kids,
+            } as unknown as Child;
+        }
+        return { kind: "element", tag: String(type), props: attrs, children: kids } as unknown as Child;
+    }
     return createNode(type, props, children);
 }
 
@@ -137,6 +170,12 @@ export function createNode(type: unknown, props: unknown, children: Child[]): Ch
  * @param children Positional children.
  */
 export function Fragment(props: Props | null, ...children: Child[]): Child {
+    if (serving) {
+        return {
+            kind: "fragment",
+            children: children.length > 0 ? children : [props?.["children"]],
+        } as unknown as Child;
+    }
     if (children.length > 0) {
         return children;
     }
