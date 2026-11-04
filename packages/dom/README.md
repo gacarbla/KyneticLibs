@@ -76,19 +76,39 @@ function Todo({ text, done, onToggle }: TodoProps) {
 
 ## Lists and conditionals
 
-Lists and conditionals are ordinary expressions; the compiler wraps them in a single effect.
+Lists and conditionals have dedicated components with per-item ownership:
 
 ```tsx
 <ul>
-    {items().map((item) => (
-        <li>{item.text}</li>
-    ))}
-</ul>;
+    <For each={items} keyBy={(item) => item.id} fallback={<p>Nothing yet.</p>}>
+        {(item) => <li>{item.text}</li>}
+    </For>
+</ul>
 
-{
-    pending() === 0 ? <p>Everything done.</p> : <p>{pending()} pending</p>;
-}
+<Show when={() => pending() === 0} fallback={<p>{pending()} pending</p>}>
+    <p>Everything done.</p>
+</Show>
 ```
+
+`each` and `when` accept an accessor (a signal or computed) or a plain value. Keep the item
+object stable to reuse its DOM node; a new object under the same key re-creates the row.
+
+## Portals and error boundaries
+
+```tsx
+<Portal mount={document.body}>
+    <div class="modal">...</div>
+</Portal>
+
+<ErrorBoundary fallback={(error) => <p>{error.message}</p>}>
+    <RiskyWidget />
+</ErrorBoundary>
+```
+
+`Portal` moves content to another element and cleans it up when the owner is disposed.
+`ErrorBoundary` catches errors thrown while mounting or re-rendering children; pass `reset`
+to retry.
+
 
 ## Context
 
@@ -128,16 +148,18 @@ function Widget() {
 | --- | --- |
 | `jsx`, `Fragment` | Classic JSX factories. |
 | `render(component, container)` | Mounts a tree; returns a disposer. |
+| `For`, `Show` | Keyed collections and conditional branches with per-item owners. |
+| `Portal`, `ErrorBoundary` | Overlays and render error isolation. |
 | `createContext`, `Context`, `useContext` | Synchronous context. |
 | `onMount`, `onCleanup` | Post-insertion hook and cleanup registration. |
 | `createSignal`, `createComputed`, `createEffect`, `batch`, `untrack`, `createRoot` | Re-exported from `@kyneticweb/reactive`. |
 
 ## Limitations (0.1)
 
-- No keyed `For`/`Show` yet; use `.map()` and conditionals.
+- `For` re-creates a row when the item object changes under the same key; keep items stable.
 - Component props are eager; use accessors for reactive values.
-- No portals, error boundaries, suspense or SSR yet.
-- SVG elements use the HTML namespace.
+- No suspense, SSR or hydration yet.
+- SVG elements use the SVG namespace; `<foreignObject>` children are an edge case still to cover.
 
 See [docs/architecture.md](../../docs/architecture.md) for the compiler contract.
 

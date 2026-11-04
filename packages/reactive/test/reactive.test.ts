@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { batch, createComputed, createEffect, createRoot, createSignal, onCleanup, untrack } from "../src/index.js";
+import {
+    batch,
+    createComputed,
+    createEffect,
+    createRoot,
+    createSignal,
+    onCleanup,
+    setErrorHandler,
+    untrack,
+} from "../src/index.js";
 
 /** Waits for the microtask queue used by the scheduler. */
 async function tick(): Promise<void> {
@@ -204,5 +213,34 @@ describe("untrack", () => {
         tracked.set(1);
         await tick();
         expect(run).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("setErrorHandler", () => {
+    it("reports scheduled effect errors and keeps other effects running", async () => {
+        const count = createSignal(0);
+        const other = vi.fn();
+        const handler = vi.fn();
+        const previous = setErrorHandler(handler);
+
+        createEffect(() => {
+            if (count() === 1) {
+                throw new Error("boom");
+            }
+        });
+        createEffect(() => {
+            count();
+            other();
+        });
+        await tick();
+        other.mockClear();
+
+        count.set(1);
+        await tick();
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(other).toHaveBeenCalledTimes(1);
+
+        setErrorHandler(previous);
     });
 });

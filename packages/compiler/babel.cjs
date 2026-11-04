@@ -55,10 +55,16 @@ module.exports = function kyneticJsx(api) {
 
                 for (const attribute of opening.attributes) {
                     if (attribute.type === "JSXSpreadAttribute") {
-                        throw path.buildCodeFrameError(
-                            "Spread attributes are not supported by the Kynetic JSX compiler. " +
-                                "Pass explicit props or an accessor instead.",
-                        );
+                        // Component props are eager by design, so a spread is
+                        // safe there. On intrinsic elements it would silently
+                        // disable reactivity for the spread attributes.
+                        if (intrinsic) {
+                            throw path.buildCodeFrameError(
+                                "Spread attributes are not supported on intrinsic elements. " +
+                                    "Pass explicit props or use a component that accepts an accessor.",
+                            );
+                        }
+                        continue;
                     }
                     if (!intrinsic) {
                         continue;

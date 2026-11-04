@@ -1,6 +1,20 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
-import { createContext, createSignal, Fragment, jsx, onMount, render, useContext, type Child } from "../src/index.js";
+import {
+    createContext,
+    createSignal,
+    ErrorBoundary,
+    For,
+    Fragment,
+    jsx,
+    onCleanup,
+    onMount,
+    Portal,
+    render,
+    Show,
+    useContext,
+    type Child,
+} from "../src/index.js";
 
 async function tick(): Promise<void> {
     await Promise.resolve();
@@ -129,6 +143,236 @@ describe("components", () => {
         const container = document.createElement("div");
         container.appendChild(jsx(Theme.Provider, { value: "dark" }, () => jsx(Panel, null)) as Node);
 
+        expect(container.textContent).toBe("dark");
+    });
+});
+
+describe("collections and branches", () => {
+    it("reuses keyed rows and reorders them", async () => {
+        const items = createSignal([
+            { id: 1, text: "a" },
+            { id: 2, text: "b" },
+            { id: 3, text: "c" },
+        ]);
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx(For, {
+                each: items,
+                keyBy: (item: { id: number }) => item.id,
+                children: (item: { id: number; text: string }) => jsx("li", null, item.text),
+            }) as Node,
+        );
+
+        const nodeA = [...container.querySelectorAll("li")].find((li) => li.textContent === "a");
+        expect(container.textContent).toBe("abc");
+
+        items.set([...items()].reverse());
+        await tick();
+
+        expect(container.textContent).toBe("cba");
+        expect([...container.querySelectorAll("li")].find((li) => li.textContent === "a")).toBe(nodeA);
+    });
+
+    it("updates a row in place when the item changes under the same key", async () => {
+        const first = { id: 1, text: "a" };
+        const items = createSignal([first]);
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx(For, {
+                each: items,
+                keyBy: (item: { id: number }) => item.id,
+                children: (item: { id: number; text: string }) => jsx("li", null, () => item.text),
+            }) as Node,
+        );
+
+        const row = container.querySelector("li");
+        items.set([{ id: 1, text: "updated" }]);
+        await tick();
+
+        expect(container.textContent).toBe("updated");
+        expect(container.querySelector("li")).toBe(row);
+    });
+
+    it("disposes item effects when a row is removed", async () => {
+        const cleanup = vi.fn();
+
+        function Row(props: { item: { id: number; text: string } }): Child {
+            return jsx("li", null, () => {
+                onCleanup(cleanup);
+                return props.item.text;
+            });
+        }
+
+        const first = { id: 1, text: "a" };
+        const items = createSignal([first, { id: 2, text: "b" }]);
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx(For, {
+                each: items,
+                keyBy: (item: { id: number }) => item.id,
+                children: (item: { id: number; text: string }) => jsx(Row, { item }),
+            }) as Node,
+        );
+
+        items.set([first]);
+        await tick();
+
+        expect(container.textContent).toBe("a");
+        expect(cleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it("disposes branch effects when Show hides a subtree", async () => {
+        const cleanup = vi.fn();
+        const visible = createSignal(true);
+
+        function Panel(): Child {
+            onCleanup(cleanup);
+            return jsx("p", null, "panel");
+        }
+
+        const container = document.createElement("div");
+        container.appendChild(
+            jsx(Show, {
+                when: visible,
+                children: () => jsx(Panel, null),
+            }) as Node,
+        );
+
+        visible.set(false);
+        await tick();
+
+        expect(cleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it("renders a fallback and removes missing rows", async () => {
+        const items = createSignal([{ id: 1, text: "a" }]);
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx(For, {
+                each: items,
+                keyBy: (item: { id: number }) => item.id,
+                children: (item: { id: number; text: string }) => jsx("li", null, item.text),
+                fallback: jsx("p", null, "empty"),
+            }) as Node,
+        );
+
+        items.set([]);
+        await tick();
+
+        expect(container.textContent).toBe("empty");
+        expect(container.querySelectorAll("li")).toHaveLength(0);
+    });
+
+    it("switches branches with Show", async () => {
+        const visible = createSignal(true);
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx(Show, {
+                when: visible,
+                children: jsx("p", null, "on"),
+                fallback: jsx("p", null, "off"),
+            }) as Node,
+        );
+
+        expect(container.textContent).toBe("on");
+
+        visible.set(false);
+        await tick();
+        expect(container.textContent).toBe("off");
+    });
+
+    it("renders a portal into another element and cleans it up", () => {
+        const target = document.createElement("div");
+        const { dispose } = mount(() =>
+            jsx(Portal, {
+                mount: target,
+                children: (() => {
+                    const element = document.createElement("span");
+                    element.textContent = "modal";
+                    return element;
+                })(),
+            }),
+        );
+
+        expect(target.textContent).toBe("modal");
+
+        dispose();
+        expect(target.childNodes).toHaveLength(0);
+    });
+
+    it("catches mount errors with an error boundary", () => {
+        function Boom(): Child {
+            throw new Error("boom");
+        }
+
+        const container = document.createElement("div");
+        container.appendChild(
+            jsx(ErrorBoundary, {
+                fallback: (error: Error) => jsx("p", null, error.message),
+                children: () => jsx(Boom, null),
+            }) as Node,
+        );
+
+        expect(container.textContent).toBe("boom");
+    });
+});
+
+describe("attributes and namespaces", () => {
+    it("creates SVG elements in the SVG namespace", () => {
+        const svg = jsx("svg", { viewBox: "0 0 10 10" }, jsx("circle", { cx: 5, cy: 5, r: 4 })) as Element;
+
+        expect(svg.namespaceURI).toBe("http://www.w3.org/2000/svg");
+        expect(svg.firstChild).toBeInstanceOf(SVGElement);
+    });
+
+    it("removes style properties that disappear", async () => {
+        const bordered = createSignal(true);
+        const element = jsx("div", {
+            style: () => (bordered() ? { color: "red", borderWidth: 2 } : { color: "red" }),
+        }) as HTMLElement;
+
+        expect(element.style.borderWidth).toBe("2px");
+
+        bordered.set(false);
+        await tick();
+
+        expect(element.style.borderWidth).toBe("");
+        expect(element.style.color).toBe("red");
+    });
+
+    it("supports capture-phase event handlers", () => {
+        let captured = 0;
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx("div", { onClickCapture: () => (captured += 1) }, jsx("button", { onClick: () => undefined }, "go")),
+        );
+
+        (container.querySelector("button") as HTMLButtonElement).click();
+        expect(captured).toBe(1);
+    });
+
+    it("keeps context reactive when the provider holds a signal", async () => {
+        const Theme = createContext(createSignal("light"));
+
+        function Panel(): Child {
+            const theme = useContext(Theme);
+            return jsx("span", null, () => theme());
+        }
+
+        const theme = createSignal("light");
+        const container = document.createElement("div");
+        container.appendChild(jsx(Theme.Provider, { value: theme }, () => jsx(Panel, null)) as Node);
+
+        expect(container.textContent).toBe("light");
+
+        theme.set("dark");
+        await tick();
         expect(container.textContent).toBe("dark");
     });
 });

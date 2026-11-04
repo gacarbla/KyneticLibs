@@ -29,7 +29,7 @@ interface Computation extends Source {
 }
 
 /** Scope that owns cleanups for a component or a root. */
-interface Owner {
+export interface Owner {
     readonly cleanups: Dispose[];
 }
 
@@ -114,6 +114,32 @@ function scheduleEffect(computation: Computation): void {
     queueMicrotask(flush);
 }
 
+/** Notified when an effect fails outside the initial mount. */
+export type ErrorHandler = (error: unknown) => void;
+
+let reportError: ErrorHandler = (error) => {
+    console.error(error);
+};
+
+/**
+ * Replaces the handler used for errors thrown by scheduled effects.
+ *
+ * Initial mount errors still propagate, so an error boundary can catch them.
+ *
+ * @param handler New handler.
+ * @returns The previous handler, useful for restoring it in tests.
+ *
+ * @example
+ * ```ts
+ * const previous = setErrorHandler((error) => logger.error(error));
+ * ```
+ */
+export function setErrorHandler(handler: ErrorHandler): ErrorHandler {
+    const previous = reportError;
+    reportError = handler;
+    return previous;
+}
+
 /** Runs every pending effect, including the ones they create. */
 function flush(): void {
     flushScheduled = false;
@@ -130,7 +156,11 @@ function flush(): void {
         const work = [...pendingEffects];
         pendingEffects.clear();
         for (const computation of work) {
-            runEffect(computation);
+            try {
+                runEffect(computation);
+            } catch (error) {
+                reportError(error);
+            }
         }
     }
 }
@@ -285,7 +315,11 @@ export function createComputed<T>(fn: () => T): Computed<T> {
     accessor.peek = () => untrack(() => readMemo<T>(computation));
     accessor.dispose = () => disposeComputation(computation);
 
-    if (currentOwner !== null) {
+    // A computed created inside an effect belongs to that effect: when the
+    // effect re-runs, the old computed must stop observing its sources.
+    if (currentComputation !== null) {
+        currentComputation.cleanups.push(accessor.dispose);
+    } else if (currentOwner !== null) {
         currentOwner.cleanups.push(accessor.dispose);
     }
 
@@ -441,12 +475,17 @@ export function createRoot<T>(fn: (dispose: Dispose) => T): T {
 
 /** Runs `fn` as the owner of the current scope, without creating a new one. */
 export function runWithOwner<T>(owner: Owner, fn: () => T): T {
-    const previous = currentOwner;
+    const previousOwner = currentOwner;
+    const previousComputation = currentComputation;
     currentOwner = owner;
+    // Work created inside a dedicated owner must not be collected by an
+    // enclosing effect; it belongs to that owner until it is disposed.
+    currentComputation = null;
     try {
         return fn();
     } finally {
-        currentOwner = previous;
+        currentOwner = previousOwner;
+        currentComputation = previousComputation;
     }
 }
 

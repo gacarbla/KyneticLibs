@@ -55,7 +55,16 @@ module.exports = {
 | Component attribute | Left eager (pass an accessor for reactive props) |
 | Component child | Wrapped so a provider resolves it inside its context |
 | Arrow/function expression | Left as-is (render props) |
-| Spread attribute | Compile error with a code frame |
+| Spread on a component | Allowed (props are eager) |
+| Spread on an intrinsic element | Compile error: it would silently disable reactivity |
+
+## Tests and benchmarks
+
+`packages/dom/test` covers elements, reactivity, events, components, context, lifecycle,
+`For`/`Show` with disposal, portals, error boundaries, SVG, style cleanup and capture events.
+
+`examples/benchmark` compares the runtime with React 19. See `docs/architecture.md` for the
+numbers and the methodology.
 
 ## License
 

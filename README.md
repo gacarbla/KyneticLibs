@@ -78,6 +78,13 @@ The example lives in [`examples/counter`](./examples/counter): counter, computed
 list with controlled input, context and a theme effect. The design and the current
 limitations are documented in [`docs/architecture.md`](./docs/architecture.md).
 
+A side-by-side benchmark against React 19 lives in [`examples/benchmark`](./examples/benchmark):
+
+```bash
+npm run build:benchmark
+npx vite preview --config examples/benchmark/vite.config.ts examples/benchmark
+```
+
 ## Development
 
 ```bash

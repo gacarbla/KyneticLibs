@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Kynetic DOM · Benchmark</title>
+    </head>
+    <body>
+        <main>
+            <header>
+                <h1>Kynetic DOM vs React</h1>
+                <p class="muted">Median of 7 rounds. Same data, same operations, production build.</p>
+                <button id="run" type="button">Run benchmark</button>
+            </header>
+
+            <section class="grid">
+                <article>
+                    <h2>Kynetic</h2>
+                    <div id="ours" class="host"></div>
+                </article>
+                <article>
+                    <h2>React 19</h2>
+                    <div id="react" class="host"></div>
+                </article>
+            </section>
+
+            <section id="results"></section>
+        </main>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>

@@ -1,9 +1,9 @@
 import type { PluginOption } from "vite";
 
-/** Options reserved for future compiler flags. */
+/** Options accepted by the Kynetic Vite plugin. */
 export interface KyneticCompilerOptions {
-    /** Reserved. */
-    readonly debug?: boolean;
+    /** Files matching any pattern are left untouched (for example React code). */
+    readonly exclude?: readonly RegExp[];
 }
 
 /**

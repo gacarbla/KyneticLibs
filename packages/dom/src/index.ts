@@ -5,6 +5,8 @@
  */
 
 export { Fragment, jsx, render } from "./dom.js";
+export { ErrorBoundary, For, Portal, Show } from "./components.js";
+export type { ErrorBoundaryProps, ForKey, ForProps, PortalProps, ShowProps } from "./components.js";
 export { Context, createContext, useContext } from "./context.js";
 export { onMount } from "./lifecycle.js";
 export type { Child, ClassValue, Component, Primitive, Props, StyleValue } from "./types.js";
@@ -17,6 +19,7 @@ export {
     createRoot,
     createSignal,
     onCleanup,
+    setErrorHandler,
     untrack,
 } from "@kyneticweb/reactive";
-export type { Accessor, Computed, Dispose, Setter, Signal, SignalOptions } from "@kyneticweb/reactive";
+export type { Accessor, Computed, Dispose, ErrorHandler, Setter, Signal, SignalOptions } from "@kyneticweb/reactive";

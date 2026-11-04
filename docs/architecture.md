@@ -65,14 +65,48 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 - `render(component, container)` returns a disposer that clears the container and releases
   every effect.
 
+## Benchmark
+
+`examples/benchmark` runs the same operations against this runtime and React 19 (production
+build, `flushSync` for a synchronous React commit). Median of 3 runs × 5 rounds on a desktop
+machine, 1 000 rows:
+
+| Operation | Kynetic | React 19 | Ratio |
+| --- | --- | --- | --- |
+| create 1 000 | 21.5 ms | 15.8 ms | 0.73× |
+| update one | 1.1 ms | 1.1 ms | 1.00× |
+| update every 10th | 2.0 ms | 1.3 ms | 0.65× |
+| replace all | 12.9 ms | 5.0 ms | 0.39× |
+| reverse all | 15.4 ms | 12.3 ms | 0.80× |
+| remove one | 9.1 ms | 11.3 ms | 1.24× |
+| clear | 2.7 ms | 1.7 ms | 0.63× |
+
+**Reading the numbers:** the runtime is competitive, wins when rows are reused and the DOM is
+mostly untouched (remove one), and loses on bulk replacement, where React's optimized fiber
+diff is still better. Bundle size is the clearest advantage: the counter example (runtime +
+compiler output + app) is **~4.4 kB gzip**, against ~45 kB for React + ReactDOM.
+
+Next performance work: reduce per-row bookkeeping (fewer `Set` allocations in the reactive
+graph), batch DOM writes inside a list update, and measure with the official
+`js-framework-benchmark` harness instead of this internal page.
+
 ## Current limitations
 
-- No keyed `<For>`/`<Show>` yet: use `.map()` and conditional expressions.
+- `For` re-creates a row when the item object changes, even under the same key; keep the item
+  object stable or pass an accessor for per-item reactive fields.
 - Component attributes are eager; reactive props need an accessor.
 - Spread attributes are rejected by the compiler.
-- No portals, error boundaries, suspense or hydration yet (M4–M6).
 - Context values are not reactive unless they are accessors.
-- SVG elements are created with the HTML namespace.
+- No suspense or hydration yet (M6).
+- SVG elements are created with the SVG namespace, but `<foreignObject>` children remain SVG.
+
+## Implemented (M1–M4)
+
+- Signals, computed values, effects, batching, owners and cleanups.
+- TSX compiler with fine-grained bindings and automatic runtime.
+- Function components, context, refs, events (including capture), `onMount`/`onCleanup`.
+- `<For>` with keyed reconciliation and per-item owners, `<Show>`, `<Portal>`, `<ErrorBoundary>`.
+- SVG namespace, style property cleanup, boolean/DOM properties, `class` maps.
 
 ## Roadmap
 

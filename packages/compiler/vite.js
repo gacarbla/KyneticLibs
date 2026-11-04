@@ -19,12 +19,17 @@ import kyneticJsx from "./babel.cjs";
  * @returns A Vite plugin.
  */
 export default function kynetic(options = {}) {
+    const exclude = Array.isArray(options.exclude) ? options.exclude : [];
+
     return {
         name: "kynetic-jsx",
         enforce: "pre",
         transform(code, id) {
             const filename = id.split("?")[0];
             if (!filename.endsWith(".tsx")) {
+                return null;
+            }
+            if (exclude.some((pattern) => pattern.test(filename))) {
                 return null;
             }
 

@@ -63,6 +63,34 @@ const ATTRIBUTE_ALIASES: Readonly<Record<string, string>> = {
     srcSet: "srcset",
 };
 
+/** Namespace for SVG elements. */
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+/** Tags created in the SVG namespace. */
+const SVG_TAGS = new Set([
+    "svg",
+    "path",
+    "circle",
+    "ellipse",
+    "line",
+    "polygon",
+    "polyline",
+    "rect",
+    "g",
+    "text",
+    "defs",
+    "use",
+    "symbol",
+    "clipPath",
+    "mask",
+    "linearGradient",
+    "radialGradient",
+    "stop",
+]);
+
+/** Style properties applied per element, so updates can remove stale ones. */
+const APPLIED_STYLES = new WeakMap<Element, Set<string>>();
+
 /** Props that must be written as DOM properties, not attributes. */
 const PROPERTIES = new Set(["value", "checked", "selected", "disabled", "multiple", "readOnly", "indeterminate"]);
 
@@ -117,60 +145,70 @@ export function Fragment(props: Props | null, ...children: Child[]): Child {
 
 /** Builds a real element, applying props and appending children. */
 function createElement(tag: string, props: Props | null, children: Child[]): Element {
-    const element = document.createElement(tag);
+    const element = SVG_TAGS.has(tag) ? document.createElementNS(SVG_NAMESPACE, tag) : document.createElement(tag);
     const attrs = props ?? {};
+    const dynamic: Array<() => void> = [];
 
     for (const [key, value] of Object.entries(attrs)) {
-        if (key === "children") {
+        if (key === "children" || key === "key") {
             continue;
         }
-        applyProp(element, key, value);
+        if (key === "ref") {
+            if (typeof value === "function") {
+                const ref = value as (element: Element | null) => void;
+                ref(element);
+                onCleanup(() => ref(null));
+            }
+            continue;
+        }
+        if (key.startsWith("on") && typeof value === "function") {
+            addEvent(element, key, value as EventListener);
+            continue;
+        }
+        if (typeof value === "function") {
+            const read = value as () => unknown;
+            dynamic.push(() => setStaticProp(element, key, read()));
+            continue;
+        }
+        setStaticProp(element, key, value);
     }
 
     if (Object.hasOwn(attrs, "children") && children.length === 0) {
         appendChild(element, attrs["children"] as Child);
     }
     for (const child of children) {
-        appendChild(element, child);
+        if (typeof child === "function") {
+            dynamic.push(createDynamicChild(element, child));
+        } else {
+            appendChild(element, child);
+        }
+    }
+
+    // One effect per element keeps the number of computations proportional to
+    // the DOM, not to the number of dynamic expressions.
+    if (dynamic.length > 0) {
+        createEffect(() => {
+            for (const update of dynamic) {
+                update();
+            }
+        });
     }
 
     return element;
 }
 
-/** Applies one prop: refs, events, dynamic thunks or static values. */
-function applyProp(element: Element, key: string, value: unknown): void {
-    if (key === "key") {
-        return;
-    }
-    if (key === "ref") {
-        if (typeof value === "function") {
-            const ref = value as (element: Element | null) => void;
-            ref(element);
-            onCleanup(() => ref(null));
-        }
-        return;
-    }
-    if (key.startsWith("on") && typeof value === "function") {
-        addEvent(element, key, value as EventListener);
-        return;
-    }
-    if (typeof value === "function") {
-        createEffect(() => setStaticProp(element, key, (value as () => unknown)()));
-        return;
-    }
-    setStaticProp(element, key, value);
-}
-
 /** Registers a DOM listener and removes it with the owner. */
 function addEvent(element: Element, prop: string, handler: EventListener): void {
-    const type = eventName(prop);
-    element.addEventListener(type, handler);
-    onCleanup(() => element.removeEventListener(type, handler));
+    const capture = prop.endsWith("Capture");
+    const type = eventName(prop, capture);
+    element.addEventListener(type, handler, capture);
+    onCleanup(() => element.removeEventListener(type, handler, capture));
 }
 
-/** Converts `onKeyDown` into `keydown`. */
-function eventName(prop: string): string {
-    const suffix = prop.slice(2).toLowerCase();
+/** Converts `onKeyDown` into `keydown`, honouring the `Capture` suffix. */
+function eventName(prop: string, capture: boolean): string {
+    const base = capture ? prop.slice(0, -"Capture".length) : prop;
+    const suffix = base.slice(2).toLowerCase();
     return EVENT_ALIASES[suffix] ?? suffix;
 }
 
@@ -226,22 +264,35 @@ function classValue(value: unknown): string {
     return "";
 }
 
-/** Applies CSS text or a property map. */
+/** Applies CSS text or a property map, removing properties that disappeared. */
 function setStyle(element: HTMLElement, value: unknown): void {
     if (typeof value === "string") {
         element.style.cssText = value;
+        APPLIED_STYLES.delete(element);
         return;
     }
+
+    const previous = APPLIED_STYLES.get(element) ?? new Set<string>();
+    const next = new Set<string>();
+
     if (typeof value === "object" && value !== null) {
         for (const [property, raw] of Object.entries(value as Record<string, unknown>)) {
             if (raw === null || raw === undefined) {
                 continue;
             }
             const propertyName = toKebabCase(property);
+            next.add(propertyName);
             const text = typeof raw === "number" && !UNITLESS.has(property) ? `${raw}px` : String(raw);
             element.style.setProperty(propertyName, text);
         }
     }
+
+    for (const property of previous) {
+        if (!next.has(property)) {
+            element.style.removeProperty(property);
+        }
+    }
+    APPLIED_STYLES.set(element, next);
 }
 
 /** Converts `backgroundColor` into `background-color`. */
@@ -258,7 +309,7 @@ function appendChild(parent: Node, child: Child): void {
         return;
     }
     if (typeof child === "function") {
-        parent.appendChild(renderDynamic(child));
+        createDynamicChild(parent, child)();
         return;
     }
     if (Array.isArray(child)) {
@@ -272,6 +323,29 @@ function appendChild(parent: Node, child: Child): void {
         return;
     }
     parent.appendChild(document.createTextNode(String(child)));
+}
+
+/**
+ * Creates an anchored slot for a dynamic child.
+ *
+ * @returns An updater that resolves the thunk and replaces the slot content.
+ */
+function createDynamicChild(parent: Node, read: () => Child): () => void {
+    const anchor = document.createComment("kynetic");
+    parent.appendChild(anchor);
+    let current: Node[] = [];
+
+    return () => {
+        const next = toNodes(read());
+        for (const node of current) {
+            node.parentNode?.removeChild(node);
+        }
+        const target = anchor.parentNode ?? parent;
+        for (const node of next) {
+            target.insertBefore(node, anchor);
+        }
+        current = next;
+    };
 }
 
 /**
@@ -303,7 +377,7 @@ function renderDynamic(read: () => Child): Node {
 }
 
 /** Normalizes a child value into real DOM nodes. */
-function toNodes(value: Child): Node[] {
+export function toNodes(value: Child): Node[] {
     const resolved = resolveChild(value);
     if (resolved === null || resolved === undefined || resolved === false || resolved === true) {
         return [];

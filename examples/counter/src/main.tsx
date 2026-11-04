@@ -3,8 +3,10 @@ import {
     createContext,
     createEffect,
     createSignal,
+    For,
     onMount,
     render,
+    Show,
     useContext,
 } from "@kyneticweb/dom";
 import "./styles.css";
@@ -93,18 +95,22 @@ function Todos() {
             </form>
 
             <ul>
-                {items().map((todo) => (
-                    <li class={todo.done ? "done" : ""}>
-                        <input type="checkbox" checked={todo.done} onChange={() => toggle(todo.id)} />
-                        <span class="label">{todo.text}</span>
-                        <button class="remove" onClick={() => remove(todo.id)} aria-label={`Remove ${todo.text}`}>
-                            ✕
-                        </button>
-                    </li>
-                ))}
+                <For each={items} keyBy={(todo) => todo.id}>
+                    {(todo) => (
+                        <li class={todo.done ? "done" : ""}>
+                            <input type="checkbox" checked={todo.done} onChange={() => toggle(todo.id)} />
+                            <span class="label">{todo.text}</span>
+                            <button class="remove" onClick={() => remove(todo.id)} aria-label={`Remove ${todo.text}`}>
+                                ✕
+                            </button>
+                        </li>
+                    )}
+                </For>
             </ul>
 
-            {pending() === 0 ? <p class="empty">Everything done.</p> : <p class="muted">{pending()} pending</p>}
+            <Show when={() => pending() === 0} fallback={<p class="muted">{pending()} pending</p>}>
+                <p class="empty">Everything done.</p>
+            </Show>
         </section>
     );
 }
