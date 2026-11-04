@@ -1,5 +1,5 @@
 import { createSignal, type Child } from "@kyneticweb/dom";
-import { cx } from "./classes.js";
+import { cx, sizeToken, type SizeInput } from "./classes.js";
 
 /** One tab and its panel. */
 export interface TabItem {
@@ -16,6 +16,9 @@ export interface TabsProps {
     /** Active id, or an accessor. Omit to let the component own the state. */
     readonly value?: string | (() => string);
     readonly onChange?: (id: string) => void;
+    /** Visual style of the tab list. */
+    readonly variant?: "line" | "pills" | "segmented";
+    readonly size?: SizeInput;
     readonly class?: string;
 }
 
@@ -67,9 +70,9 @@ export function Tabs(props: TabsProps): Child {
     };
 
     return (
-        <div class={cx("kyn-tabs", props.class)}>
+        <div class={cx("kyn-tabs", `kyn-tabs--${sizeToken(props.size)}`, props.class)}>
             <div
-                class="kyn-tabs__list"
+                class={cx("kyn-tabs__list", `kyn-tabs__list--${props.variant ?? "line"}`)}
                 role="tablist"
                 ref={(element) => {
                     list = element as HTMLElement | null;

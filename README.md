@@ -106,6 +106,13 @@ npm run build:ssr
 npm run start:ssr   # http://localhost:4173
 ```
 
+The full component gallery (14 categories of UI elements) lives in
+[`examples/kit`](./examples/kit):
+
+```bash
+npm run dev:kit     # http://localhost:5173
+```
+
 ## Development
 
 ```bash

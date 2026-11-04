@@ -4,6 +4,8 @@ import { createSignal, jsx, type Child } from "@kyneticweb/dom";
 import { renderToString } from "@kyneticweb/ssr";
 import { cleanup, fireEvent, render, waitFor } from "@kyneticweb/testing";
 import {
+    Alert,
+    Avatar,
     Badge,
     Button,
     Card,
@@ -11,15 +13,17 @@ import {
     Dialog,
     Input,
     Menu,
+    Progress,
     RadioGroup,
     Select,
+    Slider,
     Spinner,
     Switch,
     Table,
     Tabs,
     Textarea,
 } from "../src/index.js";
-import type { TableProps } from "../src/index.js";
+import type { TabItem, TableProps } from "../src/index.js";
 
 afterEach(cleanup);
 
@@ -461,5 +465,112 @@ describe("Table", () => {
         const filled = render(() => renderTable({ columns, rows: people, onRowClick }));
         filled.click("tbody tr");
         expect(onRowClick).toHaveBeenCalledWith(people[0]);
+    });
+});
+
+describe("sizes, slider, avatar, alert and progress", () => {
+    it("accepts small/medium/large aliases", () => {
+        const app = render(() =>
+            jsx(
+                "div",
+                null,
+                jsx(Button, { size: "small" }, "S"),
+                jsx(Button, { size: "large" }, "L"),
+                jsx(Badge, { size: "small", dot: true }, "Badge"),
+                jsx(Switch, { checked: false, size: "large", label: "Switch" }),
+            ),
+        );
+
+        expect(app.find(".kyn-btn--sm")).not.toBeNull();
+        expect(app.find(".kyn-btn--lg")).not.toBeNull();
+        expect(app.find(".kyn-badge--sm .kyn-badge__dot")).not.toBeNull();
+        expect(app.find(".kyn-switch--lg")).not.toBeNull();
+    });
+
+    it("updates a slider", async () => {
+        const value = createSignal(20);
+        const app = render(() => jsx(Slider, { label: "Zoom", value, onChange: value.set, min: 0, max: 100 }));
+
+        const input = app.find("input") as HTMLInputElement;
+        expect(input.value).toBe("20");
+
+        app.input(input, "40");
+        await app.flush();
+
+        expect(value()).toBe(40);
+        expect(app.find(".kyn-slider__value")?.textContent).toBe("40");
+    });
+
+    it("renders avatars with initials and status", () => {
+        const app = render(() => jsx(Avatar, { name: "Ana Perez", size: "small", status: "online" }));
+
+        expect(app.find(".kyn-avatar__initials")?.textContent).toBe("AP");
+        expect(app.find(".kyn-avatar--sm")).not.toBeNull();
+        expect(app.find(".kyn-avatar__status.is-online")).not.toBeNull();
+        expect(app.find(".kyn-avatar")?.getAttribute("aria-label")).toBe("Ana Perez");
+    });
+
+    it("dismisses alerts", async () => {
+        const dismissed = vi.fn();
+        const app = render(() =>
+            jsx(Alert, { tone: "success", title: "Saved", dismissible: true, onDismiss: dismissed }, "All good"),
+        );
+
+        expect(app.find(".kyn-alert--success")).not.toBeNull();
+        expect(app.text()).toContain("Saved");
+
+        app.click(".kyn-alert__close");
+        await app.flush();
+
+        expect(dismissed).toHaveBeenCalledTimes(1);
+        expect(app.find(".kyn-alert")).toBeNull();
+    });
+
+    it("reflects progress values", async () => {
+        const value = createSignal(40);
+        const app = render(() => jsx(Progress, { label: "Upload", value, showValue: true }));
+
+        const bar = app.find(".kyn-progress__bar") as HTMLElement;
+        expect(bar.getAttribute("style")).toContain("width: 40%");
+        expect(app.find('[role="progressbar"]')?.getAttribute("aria-valuenow")).toBe("40");
+
+        value.set(75);
+        await app.flush();
+
+        expect(bar.getAttribute("style")).toContain("width: 75%");
+        expect(app.find(".kyn-progress__value")?.textContent).toBe("75%");
+    });
+
+    it("applies variants and sizes to tabs and dialogs", async () => {
+        const tabs = render(() =>
+            jsx(Tabs, {
+                variant: "pills",
+                size: "small",
+                items: [{ id: "a", label: "A", content: jsx("p", null, "Panel") }],
+            }),
+        );
+        expect(tabs.find(".kyn-tabs__list--pills")).not.toBeNull();
+        expect(tabs.find(".kyn-tabs--sm")).not.toBeNull();
+
+        const open = createSignal(true);
+        const dialogs = render(() => jsx(Dialog, { open, title: "Large", size: "large" }, "Body"));
+        await dialogs.flush();
+        expect(dialogs.find(".kyn-dialog--lg")).not.toBeNull();
+    });
+});
+
+describe("Tabs content factories", () => {
+    it("keeps several instances independent", () => {
+        const items = (): TabItem[] => [
+            { id: "a", label: "A", content: () => jsx("p", null, "Panel A") },
+            { id: "b", label: "B", content: () => jsx("p", null, "Panel B") },
+        ];
+
+        const app = render(() =>
+            jsx("div", null, jsx(Tabs, { items: items() }), jsx(Tabs, { items: items(), variant: "pills" })),
+        );
+
+        const panels = app.findAll('[role="tabpanel"]');
+        expect(panels.map((panel) => panel.textContent)).toEqual(["Panel A", "Panel A"]);
     });
 });

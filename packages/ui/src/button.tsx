@@ -1,11 +1,11 @@
 import type { Child } from "@kyneticweb/dom";
-import { cx, read } from "./classes.js";
+import { cx, read, sizeToken, type SizeInput } from "./classes.js";
 
 /** Visual variants of {@link Button}. */
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success" | "warning" | "info" | "link";
 
 /** Sizes of {@link Button}. */
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = SizeInput;
 
 /** Props accepted by {@link Button}. */
 export interface ButtonProps {
@@ -33,7 +33,7 @@ export interface ButtonProps {
  */
 export function Button(props: ButtonProps): Child {
     const variant = props.variant ?? "secondary";
-    const size = props.size ?? "md";
+    const size = sizeToken(props.size);
     const blocked = (): boolean => read(props.disabled) === true || read(props.loading) === true;
 
     return (

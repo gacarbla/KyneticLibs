@@ -1,5 +1,5 @@
 import { createSignal, Show, type Child } from "@kyneticweb/dom";
-import { cx, read } from "./classes.js";
+import { cx, read, sizeToken } from "./classes.js";
 import type { ButtonSize, ButtonVariant } from "./button.js";
 import { positionPanel, useDismiss, usePlacement } from "./popover.js";
 
@@ -113,7 +113,7 @@ export function Menu(props: MenuProps): Child {
     );
 
     return (
-        <span class={cx("kyn-menu", props.class)}>
+        <span class={cx("kyn-menu", `kyn-menu--${sizeToken(props.size)}`, props.class)}>
             <button
                 ref={(element) => {
                     trigger = element as HTMLButtonElement | null;
@@ -122,7 +122,7 @@ export function Menu(props: MenuProps): Child {
                 class={cx(
                     "kyn-btn",
                     `kyn-btn--${props.variant ?? "secondary"}`,
-                    `kyn-btn--${props.size ?? "md"}`,
+                    `kyn-btn--${sizeToken(props.size)}`,
                     "kyn-menu__trigger",
                 )}
                 aria-haspopup="menu"

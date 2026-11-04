@@ -5,6 +5,10 @@
  * `@kyneticweb/ui/styles.css` once in the application entry.
  */
 
+export { Alert } from "./alert.js";
+export type { AlertProps, AlertTone } from "./alert.js";
+export { Avatar } from "./avatar.js";
+export type { AvatarProps, AvatarSize, AvatarStatus } from "./avatar.js";
 export { Badge } from "./badge.js";
 export type { BadgeProps, BadgeTone } from "./badge.js";
 export { Button } from "./button.js";
@@ -19,8 +23,12 @@ export { Input, Textarea } from "./input.js";
 export type { InputProps, TextareaProps } from "./input.js";
 export { Menu } from "./menu.js";
 export type { MenuItem, MenuProps } from "./menu.js";
+export { Progress } from "./progress.js";
+export type { ProgressProps, ProgressTone } from "./progress.js";
 export { Select } from "./select.js";
 export type { SelectGroup, SelectItem, SelectOption, SelectProps } from "./select.js";
+export { Slider } from "./slider.js";
+export type { SliderProps } from "./slider.js";
 export { Spinner } from "./spinner.js";
 export type { SpinnerProps } from "./spinner.js";
 export { Switch } from "./switch.js";
@@ -30,3 +38,4 @@ export type { TableColumn, TableProps } from "./table.js";
 export { Tabs } from "./tabs.js";
 export type { TabItem, TabsProps } from "./tabs.js";
 export type { FieldError, FieldMessagesProps } from "./field.js";
+export type { Size, SizeInput } from "./classes.js";

@@ -1,5 +1,5 @@
 import { createSignal, type Child } from "@kyneticweb/dom";
-import { cx, read } from "./classes.js";
+import { cx, read, sizeToken, type SizeInput } from "./classes.js";
 import { fieldMessages, invalidAccessor, type FieldMessagesProps } from "./field.js";
 
 /** Props accepted by {@link Input}. */
@@ -17,7 +17,7 @@ export interface InputProps extends FieldMessagesProps {
     readonly step?: number | string;
     readonly readOnly?: boolean;
     readonly disabled?: boolean | (() => boolean);
-    readonly size?: "sm" | "md" | "lg";
+    readonly size?: SizeInput;
     readonly onInput?: (event: InputEvent) => void;
     readonly onChange?: (event: Event) => void;
     readonly onKeyDown?: (event: KeyboardEvent) => void;
@@ -49,7 +49,7 @@ export function Input(props: InputProps): Child {
         }
         props.onInput?.(event);
     };
-    const size = props.size ?? "md";
+    const size = sizeToken(props.size);
 
     return (
         <label class={cx("kyn-field", props.class)}>
@@ -90,6 +90,7 @@ export function Input(props: InputProps): Child {
 
 /** Props accepted by {@link Textarea}. */
 export interface TextareaProps extends FieldMessagesProps {
+    readonly size?: SizeInput;
     readonly value?: string | (() => string);
     readonly defaultValue?: string;
     readonly placeholder?: string;
@@ -140,7 +141,7 @@ export function Textarea(props: TextareaProps): Child {
                 </span>
             ) : null}
             <textarea
-                class="kyn-textarea"
+                class={cx("kyn-textarea", `kyn-textarea--${sizeToken(props.size)}`)}
                 value={value}
                 placeholder={props.placeholder}
                 name={props.name}

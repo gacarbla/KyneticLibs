@@ -126,6 +126,22 @@ Component attributes are eager, so pass an **accessor** for props that must upda
 
 Plain values work too; they just do not update when the source changes.
 
+## Content is made of real nodes
+
+JSX produces real DOM nodes, not reusable templates. When the same content is rendered in
+several places (for example one `items` array passed to two `Tabs`), pass a **factory** so
+each mount creates its own nodes:
+
+```tsx
+const items = (): TabItem[] => [
+    { id: "one", label: "One", content: () => <Overview /> },
+    { id: "two", label: "Two", content: () => <Billing /> },
+];
+
+<Tabs items={items()} />
+<Tabs items={items()} variant="pills" />
+```
+
 ## Theming
 
 The stylesheet defines CSS variables on `:root` and a dark palette under

@@ -1,5 +1,5 @@
 import { createSignal, Show, type Child } from "@kyneticweb/dom";
-import { cx, read } from "./classes.js";
+import { cx, read, sizeToken, type SizeInput } from "./classes.js";
 import { positionPanel, useDismiss, usePlacement } from "./popover.js";
 
 /** One selectable option. */
@@ -35,6 +35,7 @@ export interface SelectProps {
     readonly clearable?: boolean;
     readonly disabled?: boolean | (() => boolean);
     readonly label?: string;
+    readonly size?: SizeInput;
     /** Adds a hidden input for native form submission. */
     readonly name?: string;
     readonly class?: string;
@@ -240,7 +241,7 @@ export function Select(props: SelectProps): Child {
     };
 
     return (
-        <div class={cx("kyn-select", props.class)}>
+        <div class={cx("kyn-select", `kyn-select--${sizeToken(props.size)}`, props.class)}>
             {props.label !== undefined ? <span class="kyn-field__label">{props.label}</span> : null}
             <div class="kyn-select__anchor">
                 <button

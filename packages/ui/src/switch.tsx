@@ -1,5 +1,5 @@
 import type { Child } from "@kyneticweb/dom";
-import { cx, read } from "./classes.js";
+import { cx, read, sizeToken, type SizeInput } from "./classes.js";
 
 /** Props accepted by {@link Switch}. */
 export interface SwitchProps {
@@ -10,6 +10,7 @@ export interface SwitchProps {
     /** Visible label. The input is wrapped by it, so no id is needed. */
     readonly label?: Child;
     readonly disabled?: boolean | (() => boolean);
+    readonly size?: SizeInput;
     readonly class?: string;
 }
 
@@ -30,7 +31,7 @@ export function Switch(props: SwitchProps): Child {
     };
 
     return (
-        <label class={cx("kyn-switch", props.class)}>
+        <label class={cx("kyn-switch", `kyn-switch--${sizeToken(props.size)}`, props.class)}>
             <input
                 type="checkbox"
                 class="kyn-switch__input"

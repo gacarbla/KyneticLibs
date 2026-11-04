@@ -1,5 +1,5 @@
 import { createEffect, onCleanup, Show, type Child } from "@kyneticweb/dom";
-import { cx, read } from "./classes.js";
+import { cx, read, sizeToken, type SizeInput } from "./classes.js";
 
 /** Props accepted by {@link Dialog}. */
 export interface DialogProps {
@@ -11,6 +11,7 @@ export interface DialogProps {
     readonly title: string;
     readonly children?: Child;
     readonly footer?: Child;
+    readonly size?: SizeInput;
     readonly class?: string;
 }
 
@@ -63,7 +64,7 @@ export function Dialog(props: DialogProps): Child {
         <Show when={isOpen}>
             <div class="kyn-dialog__backdrop" onClick={onBackdropClick}>
                 <div
-                    class={cx("kyn-dialog", props.class)}
+                    class={cx("kyn-dialog", `kyn-dialog--${sizeToken(props.size)}`, props.class)}
                     role="dialog"
                     aria-modal="true"
                     aria-label={props.title}

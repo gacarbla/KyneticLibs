@@ -1,5 +1,5 @@
 import { createSignal, type Child } from "@kyneticweb/dom";
-import { cx } from "./classes.js";
+import { cx, sizeToken, type SizeInput } from "./classes.js";
 
 /** One column of a {@link Table}. */
 export interface TableColumn<T> {
@@ -26,6 +26,7 @@ export interface TableProps<T> {
     readonly onRowClick?: (row: T) => void;
     readonly striped?: boolean;
     readonly compact?: boolean;
+    readonly size?: SizeInput;
     readonly caption?: string;
     readonly class?: string;
 }
@@ -97,7 +98,11 @@ export function Table<T>(props: TableProps<T>): Child {
     return (
         <div class={cx("kyn-table__wrapper", props.class)}>
             <table
-                class={cx("kyn-table", props.striped === true && "is-striped", props.compact === true && "is-compact")}
+                class={cx(
+                    "kyn-table",
+                    `kyn-table--${props.compact === true ? "sm" : sizeToken(props.size)}`,
+                    props.striped === true && "is-striped",
+                )}
             >
                 {props.caption !== undefined ? <caption class="kyn-table__caption">{props.caption}</caption> : null}
                 <thead>

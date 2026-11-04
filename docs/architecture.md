@@ -149,6 +149,18 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 - the contact form exercises validation, thunks for `value`/`disabled`, and a conditional
   success view.
 
+## Component gallery
+
+`examples/kit` (`npm run dev:kit`) is the visual reference for the UI kit: 14 categories
+covering buttons, inputs, selects, checkboxes/radios, switches, sliders, badges, avatars,
+alerts, progress, tabs, menus, tables and dialogs. Every component exposes typed variants,
+tones and sizes (`size="small" | "medium" | "large"`), and the page can switch between the
+light and dark palettes.
+
+Because JSX creates real DOM nodes rather than reusable templates, content shared between
+several components is passed as a factory (`content: () => <Panel />`); the gallery documents
+this pattern.
+
 ## Current limitations
 
 - `For` reuses a row when the item object changes under the same key: reads go through a
