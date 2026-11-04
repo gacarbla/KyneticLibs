@@ -15,12 +15,15 @@ interface Source {
     readonly observers: Set<Computation>;
 }
 
+/** Effects are never sources, so they share an empty observer set. */
+const EFFECT_OBSERVERS: Set<Computation> = new Set();
+
 /** A reactive computation: a memo or an effect. */
 interface Computation extends Source {
     readonly kind: ComputationKind;
     readonly fn: () => unknown;
-    readonly sources: Set<Source>;
-    readonly cleanups: Dispose[];
+    readonly sources: Source[];
+    cleanups: Dispose[] | null;
     dirty: boolean;
     disposed: boolean;
     running: boolean;
@@ -50,7 +53,7 @@ function track(source: Source): void {
         return;
     }
     source.observers.add(computation);
-    computation.sources.add(source);
+    computation.sources.push(source);
 }
 
 /** Drops every dependency of a computation before it runs again. */
@@ -58,14 +61,18 @@ function cleanSources(computation: Computation): void {
     for (const source of computation.sources) {
         source.observers.delete(computation);
     }
-    computation.sources.clear();
+    computation.sources.length = 0;
 }
 
 /** Runs the registered cleanups in reverse order and empties the list. */
 function runCleanups(computation: Computation): void {
-    const cleanups = computation.cleanups.splice(0).reverse();
-    for (const cleanup of cleanups) {
-        cleanup();
+    const cleanups = computation.cleanups;
+    if (cleanups === null) {
+        return;
+    }
+    computation.cleanups = null;
+    for (let index = cleanups.length - 1; index >= 0; index -= 1) {
+        cleanups[index]?.();
     }
 }
 
@@ -302,8 +309,8 @@ export function createComputed<T>(fn: () => T): Computed<T> {
         kind: "memo",
         fn,
         observers: new Set(),
-        sources: new Set(),
-        cleanups: [],
+        sources: [],
+        cleanups: null,
         dirty: true,
         disposed: false,
         running: false,
@@ -318,7 +325,7 @@ export function createComputed<T>(fn: () => T): Computed<T> {
     // A computed created inside an effect belongs to that effect: when the
     // effect re-runs, the old computed must stop observing its sources.
     if (currentComputation !== null) {
-        currentComputation.cleanups.push(accessor.dispose);
+        (currentComputation.cleanups ??= []).push(accessor.dispose);
     } else if (currentOwner !== null) {
         currentOwner.cleanups.push(accessor.dispose);
     }
@@ -334,7 +341,9 @@ function disposeComputation(computation: Computation): void {
     computation.disposed = true;
     runCleanups(computation);
     cleanSources(computation);
-    computation.observers.clear();
+    if (computation.observers !== EFFECT_OBSERVERS) {
+        computation.observers.clear();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -356,7 +365,7 @@ function runEffect(computation: Computation): void {
     try {
         const result = computation.fn();
         if (typeof result === "function") {
-            computation.cleanups.push(result as Dispose);
+            (computation.cleanups ??= []).push(result as Dispose);
         }
         computation.dirty = false;
     } finally {
@@ -384,9 +393,9 @@ export function createEffect(fn: () => unknown): Dispose {
     const computation: Computation = {
         kind: "effect",
         fn,
-        observers: new Set(),
-        sources: new Set(),
-        cleanups: [],
+        observers: EFFECT_OBSERVERS,
+        sources: [],
+        cleanups: null,
         dirty: false,
         disposed: false,
         running: false,
@@ -404,7 +413,7 @@ export function createEffect(fn: () => unknown): Dispose {
     };
 
     if (currentComputation !== null) {
-        currentComputation.cleanups.push(dispose);
+        (currentComputation.cleanups ??= []).push(dispose);
     } else if (currentOwner !== null) {
         currentOwner.cleanups.push(dispose);
     }
@@ -426,7 +435,7 @@ export function createEffect(fn: () => unknown): Dispose {
  */
 export function onCleanup(fn: Dispose): void {
     if (currentComputation !== null) {
-        currentComputation.cleanups.push(fn);
+        (currentComputation.cleanups ??= []).push(fn);
         return;
     }
     if (currentOwner !== null) {
@@ -460,7 +469,7 @@ export function createRoot<T>(fn: (dispose: Dispose) => T): T {
     };
 
     if (parentComputation !== null) {
-        parentComputation.cleanups.push(dispose);
+        (parentComputation.cleanups ??= []).push(dispose);
     } else if (parentOwner !== null) {
         parentOwner.cleanups.push(dispose);
     }

@@ -68,27 +68,31 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 ## Benchmark
 
 `examples/benchmark` runs the same operations against this runtime and React 19 (production
-build, `flushSync` for a synchronous React commit). Median of 3 runs × 5 rounds on a desktop
-machine, 1 000 rows:
+build, `flushSync` for a synchronous React commit). Median of 5 runs × 5 rounds on a desktop
+machine, 1 000 rows; expect ±20–30 % run-to-run variance:
 
 | Operation | Kynetic | React 19 | Ratio |
 | --- | --- | --- | --- |
-| create 1 000 | 21.5 ms | 15.8 ms | 0.73× |
-| update one | 1.1 ms | 1.1 ms | 1.00× |
-| update every 10th | 2.0 ms | 1.3 ms | 0.65× |
-| replace all | 12.9 ms | 5.0 ms | 0.39× |
-| reverse all | 15.4 ms | 12.3 ms | 0.80× |
-| remove one | 9.1 ms | 11.3 ms | 1.24× |
-| clear | 2.7 ms | 1.7 ms | 0.63× |
+| create 1 000 | 11.1 ms | 9.5 ms | 0.86× |
+| update one | ~0.6–0.9 ms | ~0.6 ms | ~1.0× |
+| update every 10th | 1.2 ms | 1.0 ms | 0.83× |
+| replace all | 8.9 ms | 4.0 ms | 0.45× |
+| reverse all | 8.9 ms | 7.9 ms | 0.89× |
+| remove one | 6.2 ms | 7.9 ms | 1.27× |
+| clear | 1.7 ms | 1.4 ms | 0.82× |
 
-**Reading the numbers:** the runtime is competitive, wins when rows are reused and the DOM is
-mostly untouched (remove one), and loses on bulk replacement, where React's optimized fiber
-diff is still better. Bundle size is the clearest advantage: the counter example (runtime +
-compiler output + app) is **~4.4 kB gzip**, against ~45 kB for React + ReactDOM.
+The first version of this benchmark was 2–3× slower; the current one is competitive after
+moving sources to arrays, allocating cleanups lazily, sharing one observer set for effects,
+grouping dynamic bindings into a single effect per element, inserting the first render as a
+fragment and updating list rows in place through a per-item proxy.
 
-Next performance work: reduce per-row bookkeeping (fewer `Set` allocations in the reactive
-graph), batch DOM writes inside a list update, and measure with the official
-`js-framework-benchmark` harness instead of this internal page.
+**Reading the numbers:** single-row updates are effectively tied and removal wins; React still
+wins bulk replacement, where its fiber diff is better. The clearest advantage remains bundle
+size: the counter example (runtime + compiler output + app) is **~4.4 kB gzip**, against
+~45 kB for React + ReactDOM.
+
+Next performance work: batch DOM writes inside a list update, compile static subtrees into
+cloneable templates, and measure with the official `js-framework-benchmark` harness.
 
 ## Current limitations
 
