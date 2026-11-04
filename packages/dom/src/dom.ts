@@ -206,7 +206,15 @@ function createElement(tag: string, props: Props | null, children: Child[]): Ele
         }
         if (typeof value === "function") {
             const read = value as () => unknown;
-            dynamic.push(() => setStaticProp(element, key, read()));
+            let previous: unknown = UNSET;
+            dynamic.push(() => {
+                const next = read();
+                if (Object.is(previous, next)) {
+                    return;
+                }
+                previous = next;
+                setStaticProp(element, key, next);
+            });
             continue;
         }
         setStaticProp(element, key, value);
@@ -227,8 +235,8 @@ function createElement(tag: string, props: Props | null, children: Child[]): Ele
     // the DOM, not to the number of dynamic expressions.
     if (dynamic.length > 0) {
         createEffect(() => {
-            for (const update of dynamic) {
-                update();
+            for (let index = 0; index < dynamic.length; index += 1) {
+                (dynamic[index] as () => void)();
             }
         });
     }
@@ -364,24 +372,60 @@ function appendChild(parent: Node, child: Child): void {
     parent.appendChild(document.createTextNode(String(child)));
 }
 
+/** Sentinel used to force the first dynamic write. */
+const UNSET = Symbol("kynetic.unset");
+
 /**
- * Creates an anchored slot for a dynamic child.
+ * Creates a slot for a dynamic child.
  *
- * @returns An updater that resolves the thunk and replaces the slot content.
+ * Text updates reuse the existing text node; other values keep their position
+ * through the previous sibling, so no comment anchor is needed while the slot
+ * has content. A comment placeholder is only inserted when the slot becomes
+ * empty, which preserves insertion order for later updates.
+ *
+ * @returns An updater that resolves the thunk and patches the slot.
  */
 function createDynamicChild(parent: Node, read: () => Child): () => void {
-    const anchor = document.createComment("kynetic");
-    parent.appendChild(anchor);
     let current: Node[] = [];
+    let placeholder: Node | null = null;
 
     return () => {
-        const next = toNodes(read());
+        const value = resolveChild(read());
+        const isText = typeof value === "string" || typeof value === "number";
+
+        if (isText && current.length === 1) {
+            const node = current[0];
+            if (node !== undefined && node.nodeType === Node.TEXT_NODE) {
+                const text = String(value);
+                if ((node as Text).data !== text) {
+                    (node as Text).data = text;
+                }
+                return;
+            }
+        }
+
+        const first = current[0] ?? placeholder;
+        const target = first?.parentNode ?? parent;
+        const last = current.length > 0 ? current[current.length - 1] : placeholder;
+        const reference = last?.nextSibling ?? null;
+
         for (const node of current) {
             node.parentNode?.removeChild(node);
         }
-        const target = anchor.parentNode ?? parent;
+
+        const next: Node[] = isText ? [document.createTextNode(String(value))] : toNodes(value);
+
+        if (next.length === 0) {
+            if (placeholder === null) {
+                placeholder = document.createComment("kynetic");
+                target.insertBefore(placeholder, reference);
+            }
+            current = [];
+            return;
+        }
+
         for (const node of next) {
-            target.insertBefore(node, anchor);
+            target.insertBefore(node, reference);
         }
         current = next;
     };

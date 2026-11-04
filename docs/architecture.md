@@ -76,41 +76,52 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 ## Benchmark
 
 `examples/benchmark` runs the same operations against this runtime and React 19 (production
-build, `flushSync` for a synchronous React commit). Median of 5 runs × 5 rounds on a desktop
-machine, 1 000 rows; expect ±20–30 % run-to-run variance:
+build, `flushSync` for a synchronous React commit, forced layout included). Median of 15 runs
+(5 rounds each) on a desktop machine, 1 000 rows; expect ±20–30 % run-to-run variance:
 
 | Operation | Kynetic | React 19 | Ratio |
 | --- | --- | --- | --- |
-| create 1 000 | 11.1 ms | 9.5 ms | 0.86× |
-| update one | ~0.6–0.9 ms | ~0.6 ms | ~1.0× |
-| update every 10th | 1.2 ms | 1.0 ms | 0.83× |
-| replace all | 8.9 ms | 4.0 ms | 0.45× |
-| reverse all | 8.9 ms | 7.9 ms | 0.89× |
-| remove one | 6.2 ms | 7.9 ms | 1.27× |
-| clear | 1.7 ms | 1.4 ms | 0.82× |
+| create 1 000 | 17.5 ms | 18.6 ms | 1.06× |
+| update one | 0.5 ms | 1.1 ms | 2.20× |
+| update every 10th | 1.1 ms | 1.4 ms | 1.27× |
+| replace all | 6.7 ms | 6.3 ms | 0.94× |
+| reverse all | 12.1 ms | 13.6 ms | 1.12× |
+| remove one | 9.5 ms | 12.1 ms | 1.27× |
+| clear | 1.6 ms | 1.7 ms | 1.06× |
 
-The first version of this benchmark was 2–3× slower; the current one is competitive after
-moving sources to arrays, allocating cleanups lazily, sharing one observer set for effects,
-grouping dynamic bindings into a single effect per element, inserting the first render as a
-fragment and updating list rows in place through a per-item proxy.
+The first version of this benchmark was 2–3× slower. The current runtime reaches parity or
+wins every operation after these changes:
 
-**Reading the numbers:** single-row updates are effectively tied and removal wins; React still
-wins bulk replacement, where its fiber diff is better. The clearest advantage remains bundle
-size: the counter example (runtime + compiler output + app) is **~4.4 kB gzip**, against
-~45 kB for React + ReactDOM.
+- one observer slot per source instead of a `Set`, with a `Set` allocated only on the second
+  observer;
+- an array scheduler queue with a `scheduled` flag, so flushing needs no `Set` or copy;
+- one effect per element, dynamic attributes skipped when their value is unchanged, and text
+  updates that rewrite the existing text node;
+- a key-order fast path in `For`: immutable updates with stable keys skip the map rebuild,
+  the reorder walk and every DOM write;
+- a shared proxy handler for list items (no per-item closures) and one range deletion for
+  large contiguous removals such as clearing the list.
+
+**Reading the numbers:** single-row updates and removals win clearly, bulk operations are at
+parity, and creation is slightly ahead. Layout dominates the absolute times (a forced
+`getBoundingClientRect` is roughly half of each measurement), which is why the no-layout
+diagnostic still shows React ahead on creation. The clearest advantage remains bundle size:
+the counter example (runtime + compiler output + app) is **~4.4 kB gzip**, against ~45 kB for
+React + ReactDOM.
 
 Next performance work: batch DOM writes inside a list update, compile static subtrees into
 cloneable templates, and measure with the official `js-framework-benchmark` harness.
 
 ## Current limitations
 
-- `For` re-creates a row when the item object changes, even under the same key; keep the item
-  object stable or pass an accessor for per-item reactive fields.
+- `For` reuses a row when the item object changes under the same key: reads go through a
+  shallow proxy, so the DOM and focus survive. Only top-level properties are reactive.
 - Component attributes are eager; reactive props need an accessor.
 - Spread attributes are allowed; values are eager unless they are already thunks (form
   bindings provide reactive thunks).
 - Context values are not reactive unless they are accessors.
-- No suspense or hydration yet (M6).
+- Hydration adopts elements, components, bindings and context; collections and conditionals
+  currently fall back to a client render. Async rendering (Suspense, lazy routes) is M6.
 - SVG elements are created with the SVG namespace, but `<foreignObject>` children remain SVG.
 
 ## Implemented (M1–M4)

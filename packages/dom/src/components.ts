@@ -6,6 +6,7 @@ import {
     onCleanup,
     runWithOwner,
     type Owner,
+    type Signal,
 } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
 import { isServerMode, toNodes } from "./dom.js";
@@ -66,7 +67,13 @@ export function For<T>(props: ForProps<T>): Node {
     const anchor = document.createComment("for");
     fragment.appendChild(anchor);
 
-    const items = new Map<ForKey, ForItem<T>>();
+    const each = props.each;
+    const keyBy = props.keyBy;
+    const renderItem = props.children;
+    const fallback = props.fallback;
+
+    let items = new Map<ForKey, ForItem<T>>();
+    let order: ForKey[] = [];
     let fallbackNodes: Node[] = [];
     let fallbackOwner: Owner | null = null;
 
@@ -83,35 +90,49 @@ export function For<T>(props: ForProps<T>): Node {
     });
 
     createEffect(() => {
-        const initial = items.size === 0;
-        const source = typeof props.each === "function" ? props.each() : props.each;
+        const source = typeof each === "function" ? (each as () => readonly T[])() : each;
+
+        // Fast path: the keys did not move, so only item content can change.
+        // This is the common case for immutable updates; it skips the map
+        // rebuild, the reorder walk and every DOM write.
+        if (order.length === source.length && order.length > 0) {
+            let unchanged = true;
+            for (let index = 0; index < source.length; index += 1) {
+                const item = source[index] as T;
+                const key = keyBy ? keyBy(item, index) : defaultKey(item, index);
+                const record = items.get(key);
+                if (key !== order[index] || record === undefined || !reuseItem(record, item)) {
+                    unchanged = false;
+                    break;
+                }
+            }
+            if (unchanged) {
+                return;
+            }
+        }
+
         const next = new Map<ForKey, ForItem<T>>();
-        const order: ForKey[] = [];
+        const keys: ForKey[] = [];
+        const removed: Node[] = [];
 
         for (let index = 0; index < source.length; index += 1) {
             const item = source[index] as T;
-            const key = props.keyBy ? props.keyBy(item, index) : defaultKey(item, index);
+            const key = keyBy ? keyBy(item, index) : defaultKey(item, index);
 
             if (next.has(key)) {
                 console.warn(`<For> received a duplicate key: ${String(key)}. The first item wins.`);
                 continue;
             }
-            order.push(key);
+            keys.push(key);
 
             const previous = items.get(key);
+            if (previous !== undefined && reuseItem(previous, item)) {
+                next.set(key, previous);
+                continue;
+            }
             if (previous !== undefined) {
-                if (Object.is(previous.current, item)) {
-                    next.set(key, previous);
-                    continue;
-                }
-                if (isObject(item) && previous.update !== undefined) {
-                    previous.current = item;
-                    previous.update(item);
-                    next.set(key, previous);
-                    continue;
-                }
                 disposeOwner(previous.owner);
-                removeNodes(previous.nodes);
+                collectNodes(previous.nodes, removed);
             }
 
             let rendered: T = item;
@@ -123,17 +144,19 @@ export function For<T>(props: ForProps<T>): Node {
             }
 
             const owner = createOwner();
-            const nodes = runWithOwner(owner, () => toNodes(props.children(rendered, index)));
+            const nodes = runWithOwner(owner, () => toNodes(renderItem(rendered, index)));
             next.set(key, { item: rendered, current: item, update, nodes, owner });
         }
 
-        // Dispose items that disappeared.
+        // Dispose items that disappeared and collect their nodes for a single
+        // bulk removal when they are contiguous.
         for (const [key, record] of items) {
             if (!next.has(key)) {
                 disposeOwner(record.owner);
-                removeNodes(record.nodes);
+                collectNodes(record.nodes, removed);
             }
         }
+        removeNodesBulk(removed);
 
         // Remove the fallback first so the anchor is the only reference node.
         if (fallbackOwner !== null) {
@@ -148,10 +171,10 @@ export function For<T>(props: ForProps<T>): Node {
         // Reorder by walking backwards: a node already immediately before the
         // cursor is in place and costs no DOM mutation.
         const parent = anchor.parentNode ?? fragment;
-        if (initial && order.length > 0) {
-            // First render: insert everything in one DOM operation.
+        if (items.size === 0 && keys.length > 0) {
+            // First render (or refill after a clear): one DOM operation.
             const batch = document.createDocumentFragment();
-            for (const key of order) {
+            for (const key of keys) {
                 const record = next.get(key) as ForItem<T>;
                 for (const node of record.nodes) {
                     batch.appendChild(node);
@@ -160,8 +183,8 @@ export function For<T>(props: ForProps<T>): Node {
             parent.insertBefore(batch, anchor);
         } else {
             let cursor: Node = anchor;
-            for (let index = order.length - 1; index >= 0; index -= 1) {
-                const record = next.get(order[index] as ForKey);
+            for (let index = keys.length - 1; index >= 0; index -= 1) {
+                const record = next.get(keys[index] as ForKey);
                 if (record === undefined) {
                     continue;
                 }
@@ -176,21 +199,76 @@ export function For<T>(props: ForProps<T>): Node {
         }
 
         // Fallback when the collection is empty.
-        if (source.length === 0 && props.fallback !== undefined) {
+        if (source.length === 0 && fallback !== undefined) {
             fallbackOwner = createOwner();
-            fallbackNodes = runWithOwner(fallbackOwner, () => toNodes(props.fallback));
+            fallbackNodes = runWithOwner(fallbackOwner, () => toNodes(fallback));
             for (const node of fallbackNodes) {
                 parent.insertBefore(node, anchor);
             }
         }
 
-        items.clear();
-        for (const [key, record] of next) {
-            items.set(key, record);
-        }
+        items = next;
+        order = keys;
     });
 
     return fragment;
+}
+
+/** Reuses an existing row, updating its proxy in place when possible. */
+function reuseItem<T>(record: ForItem<T>, item: T): boolean {
+    if (Object.is(record.current, item)) {
+        return true;
+    }
+    if (!isObject(item) || record.update === undefined) {
+        return false;
+    }
+    record.current = item;
+    record.update(item);
+    return true;
+}
+
+/** Appends a row's nodes to the pending removal list. */
+function collectNodes(nodes: readonly Node[], target: Node[]): void {
+    for (const node of nodes) {
+        target.push(node);
+    }
+}
+
+/**
+ * Removes nodes efficiently.
+ *
+ * Small or scattered batches are removed one by one. Large contiguous batches
+ * (clearing the list, removing a block) use a single range deletion, which
+ * keeps the work inside the DOM implementation.
+ */
+function removeNodesBulk(nodes: readonly Node[]): void {
+    const count = nodes.length;
+    if (count === 0) {
+        return;
+    }
+
+    if (count >= 16) {
+        const first = nodes[0];
+        const last = nodes[count - 1];
+        const parent = first?.parentNode ?? null;
+        if (first !== undefined && last !== undefined && parent !== null && last.parentNode === parent) {
+            let between = 0;
+            let node = first.nextSibling;
+            while (node !== null && node !== last) {
+                between += 1;
+                node = node.nextSibling;
+            }
+            if (node === last && between + 2 === count) {
+                const range = document.createRange();
+                range.setStartBefore(first);
+                range.setEndAfter(last);
+                range.deleteContents();
+                return;
+            }
+        }
+    }
+
+    removeNodes(nodes);
 }
 
 /** Props accepted by {@link Show}. */
@@ -407,44 +485,73 @@ function isObject(value: unknown): value is object {
  * values captured in the component body are not.
  */
 function reactiveItem<T extends object>(initial: T): { value: T; update(next: T): void } {
-    let current = initial;
-    const version = createSignal(0);
-
-    const proxy = new Proxy({} as T, {
-        get(_target, property) {
-            version();
-            const value = Reflect.get(current, property);
-            return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(current) : value;
-        },
-        has(_target, property) {
-            version();
-            return Reflect.has(current, property);
-        },
-        ownKeys() {
-            version();
-            return Reflect.ownKeys(current);
-        },
-        getOwnPropertyDescriptor(_target, property) {
-            version();
-            const descriptor = Reflect.getOwnPropertyDescriptor(current, property);
-            return descriptor === undefined ? undefined : { ...descriptor, configurable: true };
-        },
-        set() {
-            return false;
-        },
-        deleteProperty() {
-            return false;
-        },
-    });
+    const state: ItemState = { current: initial, version: createSignal(0), revision: 0 };
+    // The wrapper carries the state; the handler is shared by every row, so
+    // creating a list does not allocate six closures per item.
+    const target: ItemStateHolder = { [ITEM_STATE]: state };
+    const proxy = new Proxy(target, ITEM_HANDLER) as unknown as T;
 
     return {
         value: proxy,
         update(next) {
-            if (Object.is(next, current)) {
+            if (Object.is(next, state.current)) {
                 return;
             }
-            current = next;
-            version.update((value) => value + 1);
+            state.current = next;
+            state.revision += 1;
+            state.version.set(state.revision);
         },
     };
 }
+
+/** Reactive state behind one list item. */
+interface ItemState {
+    current: object;
+    readonly version: Signal<number>;
+    revision: number;
+}
+
+/** Proxy target that stores the item state under a private symbol. */
+interface ItemStateHolder {
+    readonly [ITEM_STATE]: ItemState;
+}
+
+/** Symbol used to reach the state from the shared proxy handler. */
+const ITEM_STATE = Symbol("kynetic.item");
+
+/**
+ * Proxy handler shared by every list item.
+ *
+ * It forwards reads to the current object and subscribes the running effect to
+ * a per-item version signal, which is what keeps rows alive across updates.
+ */
+const ITEM_HANDLER: ProxyHandler<ItemStateHolder> = {
+    get(target, property) {
+        const state = target[ITEM_STATE];
+        state.version();
+        const value = Reflect.get(state.current, property);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(state.current) : value;
+    },
+    has(target, property) {
+        const state = target[ITEM_STATE];
+        state.version();
+        return Reflect.has(state.current, property);
+    },
+    ownKeys(target) {
+        const state = target[ITEM_STATE];
+        state.version();
+        return Reflect.ownKeys(state.current);
+    },
+    getOwnPropertyDescriptor(target, property) {
+        const state = target[ITEM_STATE];
+        state.version();
+        const descriptor = Reflect.getOwnPropertyDescriptor(state.current, property);
+        return descriptor === undefined ? undefined : { ...descriptor, configurable: true };
+    },
+    set() {
+        return false;
+    },
+    deleteProperty() {
+        return false;
+    },
+};

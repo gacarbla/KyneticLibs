@@ -10,13 +10,13 @@ import type { Accessor, Computed, Dispose, Setter, Signal, SignalOptions } from 
 
 type ComputationKind = "effect" | "memo";
 
+/** One observer, a set of them, or none. Most signals have exactly one. */
+type Observers = Computation | Set<Computation> | null;
+
 /** Anything a computation can depend on. */
 interface Source {
-    readonly observers: Set<Computation>;
+    observers: Observers;
 }
-
-/** Effects are never sources, so they share an empty observer set. */
-const EFFECT_OBSERVERS: Set<Computation> = new Set();
 
 /** A reactive computation: a memo or an effect. */
 interface Computation extends Source {
@@ -28,6 +28,7 @@ interface Computation extends Source {
     disposed: boolean;
     running: boolean;
     hasValue: boolean;
+    scheduled: boolean;
     value: unknown;
 }
 
@@ -52,17 +53,41 @@ function track(source: Source): void {
     if (computation === null || computation.disposed) {
         return;
     }
-    if (source.observers.has(computation)) {
+    const current = source.observers;
+    if (current === computation) {
         return;
     }
-    source.observers.add(computation);
     computation.sources.push(source);
+    if (current === null) {
+        source.observers = computation;
+        return;
+    }
+    if (current instanceof Set) {
+        current.add(computation);
+        return;
+    }
+    source.observers = new Set([current, computation]);
+}
+
+/** Removes one observer. */
+function removeObserver(source: Source, computation: Computation): void {
+    const current = source.observers;
+    if (current === computation) {
+        source.observers = null;
+        return;
+    }
+    if (current instanceof Set) {
+        current.delete(computation);
+        if (current.size === 0) {
+            source.observers = null;
+        }
+    }
 }
 
 /** Drops every dependency of a computation before it runs again. */
 function cleanSources(computation: Computation): void {
     for (const source of computation.sources) {
-        source.observers.delete(computation);
+        removeObserver(source, computation);
     }
     computation.sources.length = 0;
 }
@@ -81,9 +106,17 @@ function runCleanups(computation: Computation): void {
 
 /** Notifies the observers of a changed source. */
 function notify(source: Source): void {
-    for (const observer of [...source.observers]) {
-        markDirty(observer);
+    const current = source.observers;
+    if (current === null) {
+        return;
     }
+    if (current instanceof Set) {
+        for (const observer of [...current]) {
+            markDirty(observer);
+        }
+        return;
+    }
+    markDirty(current);
 }
 
 /** Marks a computation as stale and schedules it when it is an effect. */
@@ -97,9 +130,17 @@ function markDirty(computation: Computation): void {
             return;
         }
         computation.dirty = true;
-        for (const observer of [...computation.observers]) {
-            markDirty(observer);
+        const current = computation.observers;
+        if (current === null) {
+            return;
         }
+        if (current instanceof Set) {
+            for (const observer of [...current]) {
+                markDirty(observer);
+            }
+            return;
+        }
+        markDirty(current);
         return;
     }
 
@@ -110,13 +151,22 @@ function markDirty(computation: Computation): void {
 // Scheduler
 // ---------------------------------------------------------------------------
 
-const pendingEffects = new Set<Computation>();
+let pendingEffects: Computation[] = [];
 let batchDepth = 0;
 let flushScheduled = false;
 
-/** Queues an effect for the next flush. */
+/**
+ * Queues an effect for the next flush.
+ *
+ * The queue is a plain array with a flag on each computation: an effect that is
+ * already queued is not added twice, and no Set or copy is needed per flush.
+ */
 function scheduleEffect(computation: Computation): void {
-    pendingEffects.add(computation);
+    if (computation.scheduled) {
+        return;
+    }
+    computation.scheduled = true;
+    pendingEffects.push(computation);
     if (batchDepth > 0 || flushScheduled) {
         return;
     }
@@ -158,14 +208,15 @@ function flush(): void {
     }
 
     let iterations = 0;
-    while (pendingEffects.size > 0) {
+    while (pendingEffects.length > 0) {
         if (iterations++ > 1000) {
-            pendingEffects.clear();
+            pendingEffects = [];
             throw new Error("Reactive update cycle exceeded 1000 iterations.");
         }
-        const work = [...pendingEffects];
-        pendingEffects.clear();
+        const work = pendingEffects;
+        pendingEffects = [];
         for (const computation of work) {
+            computation.scheduled = false;
             try {
                 runEffect(computation);
             } catch (error) {
@@ -240,7 +291,7 @@ export function untrack<T>(fn: () => T): T {
  */
 export function createSignal<T>(initial: T, options: SignalOptions<T> = {}): Signal<T> {
     const equals = options.equals ?? Object.is;
-    const source: Source = { observers: new Set<Computation>() };
+    const source: Source = { observers: null };
     let value = initial;
 
     const accessor = (() => {
@@ -311,13 +362,14 @@ export function createComputed<T>(fn: () => T): Computed<T> {
     const computation: Computation = {
         kind: "memo",
         fn,
-        observers: new Set(),
+        observers: null,
         sources: [],
         cleanups: null,
         dirty: true,
         disposed: false,
         running: false,
         hasValue: false,
+        scheduled: false,
         value: undefined,
     };
 
@@ -344,9 +396,7 @@ function disposeComputation(computation: Computation): void {
     computation.disposed = true;
     runCleanups(computation);
     cleanSources(computation);
-    if (computation.observers !== EFFECT_OBSERVERS) {
-        computation.observers.clear();
-    }
+    computation.observers = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,13 +457,14 @@ export function createEffect(fn: () => unknown): Dispose {
     const computation: Computation = {
         kind: "effect",
         fn,
-        observers: EFFECT_OBSERVERS,
+        observers: null,
         sources: [],
         cleanups: null,
         dirty: false,
         disposed: false,
         running: false,
         hasValue: false,
+        scheduled: false,
         value: undefined,
     };
 
@@ -476,9 +527,8 @@ export function createRoot<T>(fn: (dispose: Dispose) => T): T {
     const parentComputation = currentComputation;
 
     const dispose = (): void => {
-        const cleanups = owner.cleanups.splice(0).reverse();
-        for (const cleanup of cleanups) {
-            cleanup();
+        while (owner.cleanups.length > 0) {
+            owner.cleanups.pop()?.();
         }
     };
 
@@ -519,9 +569,8 @@ export function createOwner(): Owner {
 
 /** @internal Disposes an owner created with {@link createOwner}. */
 export function disposeOwner(owner: Owner): void {
-    const cleanups = owner.cleanups.splice(0).reverse();
-    for (const cleanup of cleanups) {
-        cleanup();
+    while (owner.cleanups.length > 0) {
+        owner.cleanups.pop()?.();
     }
 }
 

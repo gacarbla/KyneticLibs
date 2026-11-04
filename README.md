@@ -84,7 +84,8 @@ npm run dev:example   # http://localhost:5173
 
 The example lives in [`examples/counter`](./examples/counter): counter, computed value, todo
 list with controlled input, context and a theme effect. The design and the current
-limitations are documented in [`docs/architecture.md`](./docs/architecture.md).
+limitations are documented in [`docs/architecture.md`](./docs/architecture.md); the optional
+Rust/Node-API policy is in [`docs/native.md`](./docs/native.md).
 
 A side-by-side benchmark against React 19 lives in [`examples/benchmark`](./examples/benchmark):
 

@@ -247,6 +247,54 @@ describe("collections and branches", () => {
         expect(cleanup).toHaveBeenCalledTimes(1);
     });
 
+    it("updates every row in place when the key order does not change", async () => {
+        const initial = Array.from({ length: 50 }, (_, id) => ({ id, text: `row ${id}` }));
+        const items = createSignal(initial);
+        const container = document.createElement("div");
+
+        container.appendChild(
+            jsx(For, {
+                each: items,
+                keyBy: (item: { id: number }) => item.id,
+                children: (item: { id: number; text: string }) => jsx("li", null, () => item.text),
+            }) as Node,
+        );
+
+        const rows = [...container.querySelectorAll("li")];
+        items.set(initial.map((row) => ({ ...row, text: `copy ${row.id}` })));
+        await tick();
+
+        const updated = [...container.querySelectorAll("li")];
+        expect(updated).toHaveLength(50);
+        expect(updated[0]).toBe(rows[0]);
+        expect(updated[49]).toBe(rows[49]);
+        expect(updated[0]?.textContent).toBe("copy 0");
+        expect(updated[49]?.textContent).toBe("copy 49");
+    });
+
+    it("bulk-removes cleared rows without touching sibling content", async () => {
+        const items = createSignal(Array.from({ length: 40 }, (_, id) => ({ id, text: `row ${id}` })));
+        const container = document.createElement("div");
+        const title = jsx("h1", null, "list") as Node;
+
+        container.appendChild(title);
+        container.appendChild(
+            jsx(For, {
+                each: items,
+                keyBy: (item: { id: number }) => item.id,
+                children: (item: { id: number; text: string }) => jsx("li", null, item.text),
+            }) as Node,
+        );
+
+        expect(container.querySelectorAll("li")).toHaveLength(40);
+        items.set([]);
+        await tick();
+
+        expect(container.querySelectorAll("li")).toHaveLength(0);
+        expect(container.firstChild).toBe(title);
+        expect(container.textContent).toBe("list");
+    });
+
     it("renders a fallback and removes missing rows", async () => {
         const items = createSignal([{ id: 1, text: "a" }]);
         const container = document.createElement("div");

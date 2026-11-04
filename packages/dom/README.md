@@ -90,8 +90,9 @@ Lists and conditionals have dedicated components with per-item ownership:
 </Show>
 ```
 
-`each` and `when` accept an accessor (a signal or computed) or a plain value. Keep the item
-object stable to reuse its DOM node; a new object under the same key re-creates the row.
+`each` and `when` accept an accessor (a signal or computed) or a plain value. A new item
+object under the same key updates the existing row through a shallow proxy, so its DOM nodes
+and focus survive; only top-level properties are reactive.
 
 ## Portals and error boundaries
 
@@ -171,7 +172,8 @@ of the root, which is correct but recreates those nodes.
 ## Limitations (0.1)
 
 - `hydrate` falls back to a client render for collections, conditionals, portals and boundaries.
-- `For` re-creates a row when the item object changes under the same key; keep items stable.
+- `For` updates a row in place when the item object changes under the same key; only
+  top-level properties are reactive, so nested mutations need a new object or an accessor.
 - Component props are eager; use accessors for reactive values.
 - No suspense or async rendering yet.
 - SVG elements use the SVG namespace; `<foreignObject>` children are an edge case still to cover.
