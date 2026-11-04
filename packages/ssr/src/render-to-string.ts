@@ -54,12 +54,18 @@ export interface RenderOptions {
     readonly doctype?: boolean;
 }
 
+/** Maximum passes before `renderToStringAsync` gives up. */
+const MAX_PASSES = 10;
+
 /**
  * Renders a component tree to an HTML string without a DOM.
  *
  * The same components, `<For>`, `<Show>`, context and error boundaries used on
  * the client work here. Effects and `onMount` are skipped on the server, so
  * DOM side effects must live in those hooks.
+ *
+ * Pending nodes render their fallback; use {@link renderToStringAsync} when the
+ * tree contains lazy work that must be resolved first.
  *
  * @param component Root component, for example `() => <App />`.
  * @param options Extra rendering options.
@@ -74,7 +80,7 @@ export function renderToString(component: () => unknown, options: RenderOptions 
     const previousDom = setDomServerMode(true);
     const previousReactive = setReactiveServerMode(true);
     try {
-        const markup = renderValue(component());
+        const markup = renderValue(component(), null);
         return options.doctype === true ? `<!doctype html>${markup}` : markup;
     } finally {
         setDomServerMode(previousDom);
@@ -82,19 +88,69 @@ export function renderToString(component: () => unknown, options: RenderOptions 
     }
 }
 
-/** Renders any child value. */
-function renderValue(value: unknown): string {
+/**
+ * Renders a component tree, waiting for every pending node.
+ *
+ * Each pass is synchronous, so concurrent requests never share the server flag.
+ * After a pass, the registered promises are awaited and the tree is rendered
+ * again; components behind a pending boundary must cache their result so the
+ * next pass renders synchronously.
+ *
+ * @param component Root component.
+ * @param options Extra rendering options.
+ * @returns HTML markup.
+ * @throws {Error} When the tree does not settle after 10 passes.
+ *
+ * @example
+ * ```ts
+ * const html = await renderToStringAsync(() => <App />, { doctype: true });
+ * ```
+ */
+export async function renderToStringAsync(component: () => unknown, options: RenderOptions = {}): Promise<string> {
+    for (let pass = 0; pass < MAX_PASSES; pass += 1) {
+        const tasks: Promise<unknown>[] = [];
+        const markup = renderPass(component, tasks);
+
+        if (tasks.length === 0) {
+            return options.doctype === true ? `<!doctype html>${markup}` : markup;
+        }
+        await Promise.all(tasks);
+    }
+    throw new Error(
+        "renderToStringAsync did not settle after 10 passes; a pending component must cache its result once its promise resolves.",
+    );
+}
+
+/** Renders one synchronous pass with server mode enabled. */
+function renderPass(component: () => unknown, tasks: Promise<unknown>[]): string {
+    const previousDom = setDomServerMode(true);
+    const previousReactive = setReactiveServerMode(true);
+    try {
+        return renderValue(component(), tasks);
+    } finally {
+        setDomServerMode(previousDom);
+        setReactiveServerMode(previousReactive);
+    }
+}
+
+/**
+ * Renders any child value.
+ *
+ * @param value Child value.
+ * @param tasks Collector for pending promises, or `null` for a synchronous pass.
+ */
+function renderValue(value: unknown, tasks: Promise<unknown>[] | null): string {
     if (value === null || value === undefined || value === false || value === true) {
         return "";
     }
     if (typeof value === "function") {
-        return renderValue(value());
+        return renderValue(value(), tasks);
     }
     if (Array.isArray(value)) {
-        return value.map((item) => renderValue(item)).join("");
+        return value.map((item) => renderValue(item, tasks)).join("");
     }
     if (isVNode(value)) {
-        return renderNode(value);
+        return renderNode(value, tasks);
     }
     if (typeof value === "string" || typeof value === "number") {
         return escapeText(String(value));
@@ -103,10 +159,10 @@ function renderValue(value: unknown): string {
 }
 
 /** Renders one server node. */
-function renderNode(node: VNode): string {
+function renderNode(node: VNode, tasks: Promise<unknown>[] | null): string {
     switch (node.kind) {
         case "element":
-            return renderElement(node);
+            return renderElement(node, tasks);
         case "component": {
             const props = { ...node.props };
             if (node.children.length === 1) {
@@ -114,39 +170,43 @@ function renderNode(node: VNode): string {
             } else if (node.children.length > 1) {
                 props["children"] = node.children;
             }
-            return renderValue((node.component as (props: Record<string, unknown>) => unknown)(props));
+            return renderValue((node.component as (props: Record<string, unknown>) => unknown)(props), tasks);
         }
         case "fragment":
-            return renderValue(node.children);
+            return renderValue(node.children, tasks);
         case "each": {
             const items = typeof node.each === "function" ? node.each() : node.each;
             if (items.length === 0) {
-                return renderValue(node.fallback);
+                return renderValue(node.fallback, tasks);
             }
-            return items.map((item, index) => renderValue(node.render(item, index))).join("");
+            return items.map((item, index) => renderValue(node.render(item, index), tasks)).join("");
         }
         case "when": {
             const visible = typeof node.when === "function" ? node.when() : node.when;
-            return renderValue(visible ? node.children : node.fallback);
+            return renderValue(visible ? node.children : node.fallback, tasks);
         }
         case "portal":
-            return renderValue(node.children);
+            return renderValue(node.children, tasks);
         case "provider":
-            return node.context.runWith(node.value, () => renderValue(node.children));
+            return node.context.runWith(node.value, () => renderValue(node.children, tasks));
         case "boundary": {
             try {
-                return renderValue(node.children);
+                return renderValue(node.children, tasks);
             } catch (error) {
                 return renderValue(
                     node.fallback(error instanceof Error ? error : new Error(String(error)), () => undefined),
+                    tasks,
                 );
             }
         }
+        case "pending":
+            tasks?.push(node.promise);
+            return renderValue(node.children, tasks);
     }
 }
 
 /** Renders one element and its children. */
-function renderElement(node: Extract<VNode, { kind: "element" }>): string {
+function renderElement(node: Extract<VNode, { kind: "element" }>, tasks: Promise<unknown>[] | null): string {
     let attributes = "";
     let innerHTML: string | undefined;
 
@@ -163,7 +223,7 @@ function renderElement(node: Extract<VNode, { kind: "element" }>): string {
     if (VOID_ELEMENTS.has(tag)) {
         return `<${tag}${attributes}>`;
     }
-    const content = innerHTML ?? renderValue(node.children);
+    const content = innerHTML ?? renderValue(node.children, tasks);
     return `<${tag}${attributes}>${content}</${tag}>`;
 }
 

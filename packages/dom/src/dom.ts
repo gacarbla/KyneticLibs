@@ -1,5 +1,6 @@
-import { createEffect, createRoot, onCleanup, type Dispose } from "@kyneticweb/reactive";
+import { createEffect, createRoot, getOwner, onCleanup, type Dispose } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
+import { isVNode, type VNode } from "./vnode.js";
 import type { Child, Component, Props } from "./types.js";
 
 /**
@@ -92,22 +93,43 @@ const SVG_TAGS = new Set([
 const APPLIED_STYLES = new WeakMap<Element, Set<string>>();
 
 /**
- * Server mode: `jsx` returns plain nodes instead of DOM elements.
+ * Rendering target.
  *
- * @internal Used by `@kyneticweb/ssr`.
+ * - `client` creates real DOM nodes.
+ * - `server` produces the universal node tree for HTML serialization.
+ * - `hydrate` also produces the universal node tree, but effects run so they can
+ *   attach to the adopted DOM.
  */
-let serving = false;
+export type RenderMode = "client" | "server" | "hydrate";
+
+let mode: RenderMode = "client";
 
 /** Enables or disables server mode and returns the previous value. */
 export function setServerMode(enabled: boolean): boolean {
-    const previous = serving;
-    serving = enabled;
+    const previous = mode === "server";
+    mode = enabled ? "server" : "client";
     return previous;
 }
 
-/** Reports whether server mode is active. */
+/** Reports whether the runtime produces server nodes (server or hydration). */
 export function isServerMode(): boolean {
-    return serving;
+    return mode !== "client";
+}
+
+/** Reports whether a real server response is being rendered (not hydration). */
+export function isServerRendering(): boolean {
+    return mode === "server";
+}
+
+/**
+ * Switches the render mode and returns the previous one.
+ *
+ * @internal Used by `hydrate` to keep effects alive while adopting markup.
+ */
+export function setRenderMode(next: RenderMode): RenderMode {
+    const previous = mode;
+    mode = next;
+    return previous;
 }
 
 /** Props that must be written as DOM properties, not attributes. */
@@ -127,21 +149,38 @@ export function jsx(type: string, props?: Props | null, ...children: Child[]): N
 export function jsx<P extends object>(type: Component<P>, props?: P | null, ...children: Child[]): Child;
 export function jsx(type: unknown, props?: unknown, ...children: Child[]): Child;
 export function jsx(type: unknown, props?: unknown, ...children: Child[]): Child {
-    if (serving) {
+    if (mode !== "client") {
         const attrs = { ...((props as Props | null | undefined) ?? {}) };
-        const kids = Object.hasOwn(attrs, "children") ? [...children, attrs["children"]] : children;
-        delete attrs["children"];
-        if (typeof type === "function") {
-            return {
-                kind: "component",
-                component: type as (props: never) => unknown,
-                props: attrs,
-                children: kids,
-            } as unknown as Child;
-        }
-        return { kind: "element", tag: String(type), props: attrs, children: kids } as unknown as Child;
+        const kids = Object.hasOwn(attrs, "children") ? [...children, attrs["children"] as Child] : children;
+        return createServerNode(type, attrs, kids);
     }
     return createNode(type, props, children);
+}
+
+/**
+ * Builds a node for the universal tree.
+ *
+ * @internal Shared by the classic factory and the automatic JSX runtime.
+ * @param type Tag, component or {@link Fragment}.
+ * @param props Prop bag; `children` is ignored because it arrives positionally.
+ * @param children Child list.
+ */
+export function createServerNode(type: unknown, props: Props, children: Child[]): Child {
+    const attrs = { ...props };
+    delete attrs["children"];
+    if (type === Fragment) {
+        return { kind: "fragment", children } as unknown as Child;
+    }
+    if (typeof type === "function") {
+        return {
+            kind: "component",
+            component: type as (props: never) => unknown,
+            props: attrs,
+            children,
+            owner: getOwner(),
+        } as unknown as Child;
+    }
+    return { kind: "element", tag: String(type), props: attrs, children } as unknown as Child;
 }
 
 /**
@@ -164,13 +203,40 @@ export function createNode(type: unknown, props: unknown, children: Child[]): Ch
 }
 
 /**
+ * Declares async work for the current server render.
+ *
+ * Synchronous rendering emits `fallback`; `renderToStringAsync` awaits the
+ * promise and renders the tree again. The component that produced the promise
+ * must cache its result, so the second pass can render synchronously.
+ *
+ * @param promise Work that must settle before the final pass.
+ * @param fallback Markup shown by `renderToString` and while loading.
+ * @returns A pending server node.
+ *
+ * @example
+ * ```tsx
+ * function Profile(props: { id: string }) {
+ *     const user = cache.get(props.id);
+ *     if (user !== undefined) return <ProfileCard user={user} />;
+ *     return createPending(fetchUser(props.id).then((value) => cache.set(props.id, value)), <Spinner />);
+ * }
+ * ```
+ */
+export function createPending(promise: Promise<unknown>, fallback: Child = null): Child {
+    if (mode === "client") {
+        throw new Error("createPending() is only available while rendering on the server.");
+    }
+    return { kind: "pending", promise, children: fallback } as unknown as Child;
+}
+
+/**
  * JSX fragment factory (`esbuild.jsxFragment`).
  *
  * @param props Optional props bag containing `children`.
  * @param children Positional children.
  */
 export function Fragment(props: Props | null, ...children: Child[]): Child {
-    if (serving) {
+    if (mode !== "client") {
         return {
             kind: "fragment",
             children: children.length > 0 ? children : [props?.["children"]],
@@ -245,7 +311,7 @@ function createElement(tag: string, props: Props | null, children: Child[]): Ele
 }
 
 /** Registers a DOM listener and removes it with the owner. */
-function addEvent(element: Element, prop: string, handler: EventListener): void {
+export function addEvent(element: Element, prop: string, handler: EventListener): void {
     const capture = prop.endsWith("Capture");
     const type = eventName(prop, capture);
     element.addEventListener(type, handler, capture);
@@ -465,6 +531,9 @@ export function toNodes(value: Child): Node[] {
     if (resolved === null || resolved === undefined || resolved === false || resolved === true) {
         return [];
     }
+    if (isVNode(resolved)) {
+        return materializeNode(resolved);
+    }
     if (Array.isArray(resolved)) {
         return resolved.flatMap((item) => toNodes(item));
     }
@@ -472,6 +541,61 @@ export function toNodes(value: Child): Node[] {
         return [resolved];
     }
     return [document.createTextNode(String(resolved))];
+}
+
+/**
+ * Builds DOM nodes from a universal (server) node.
+ *
+ * A component may keep markup created during server rendering or hydration and
+ * insert it later; without this conversion the node would be stringified.
+ *
+ * @param node Universal node.
+ * @returns Real DOM nodes.
+ */
+export function materializeNode(node: VNode): Node[] {
+    switch (node.kind) {
+        case "element":
+            return [createElement(node.tag, node.props as Props, node.children as Child[])];
+        case "component": {
+            const children = node.children as Child[];
+            return toNodes(createComponent(node.component as Component, node.props as Props, children));
+        }
+        case "fragment":
+            return toNodes(node.children as Child);
+        case "each": {
+            const items = typeof node.each === "function" ? node.each() : node.each;
+            if (items.length === 0) {
+                return toNodes((node.fallback as Child) ?? null);
+            }
+            const nodes: Node[] = [];
+            for (let index = 0; index < items.length; index += 1) {
+                const item = items[index];
+                for (const child of toNodes(node.render(item, index) as Child)) {
+                    nodes.push(child);
+                }
+            }
+            return nodes;
+        }
+        case "when": {
+            const visible = typeof node.when === "function" ? node.when() : node.when;
+            return toNodes((visible ? node.children : node.fallback) as Child);
+        }
+        case "portal":
+            return toNodes(node.children as Child);
+        case "provider":
+            return node.context.runWith(node.value, () => toNodes(node.children as Child));
+        case "boundary": {
+            try {
+                return toNodes(node.children as Child);
+            } catch (error) {
+                return toNodes(
+                    node.fallback(error instanceof Error ? error : new Error(String(error)), () => undefined) as Child,
+                );
+            }
+        }
+        case "pending":
+            return toNodes(node.children as Child);
+    }
 }
 
 /** Creates a component instance and materializes its output inside its root. */

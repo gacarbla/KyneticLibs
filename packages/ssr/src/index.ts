@@ -4,4 +4,4 @@
  * Server-side rendering without a DOM.
  */
 
-export { renderToString, type RenderOptions } from "./render-to-string.js";
+export { renderToString, renderToStringAsync, type RenderOptions } from "./render-to-string.js";

@@ -15,6 +15,7 @@
             "@kyneticweb/core": ["packages/core/src/index.ts"],
             "@kyneticweb/counter": ["packages/counter/src/index.ts"],
             "@kyneticweb/dom": ["packages/dom/src/index.ts"],
+            "@kyneticweb/dom/*": ["packages/dom/src/*.ts"],
             "@kyneticweb/parser": ["packages/parser/src/index.ts"],
             "@kyneticweb/reactive": ["packages/reactive/src/index.ts"],
             "@kyneticweb/router": ["packages/router/src/index.ts"],

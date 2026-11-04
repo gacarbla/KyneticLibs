@@ -75,11 +75,44 @@ const stop = router.beforeEach((to, from) => {
 Return `false` to cancel. Guards may redirect to a static route name; parameterized
 redirects are not supported yet (throw a clear error).
 
+## Server rendering
+
+```tsx
+import { renderToStringAsync } from "@kyneticweb/ssr";
+import { createMemoryStrategy } from "@kyneticweb/router";
+
+const router = createRouter({
+    routes,
+    strategy: createMemoryStrategy(request.url),
+    fallback: "home",
+});
+router.start();
+
+const html = await renderToStringAsync(() => <App router={router} />);
+router.stop();
+```
+
+`RouterView` renders the matched route directly on the server. Lazy routes become pending
+nodes that `renderToStringAsync` awaits. Create a router per request: the definitions can be
+shared, but the route state must not.
+
+Before hydrating, resolve the current lazy view:
+ 
+```ts
+router.start();               // reads the current URL
+await router.preload();       // loads the active route, if it is lazy
+hydrate(() => <App router={router} />, container);
+```
+
+`preload` is idempotent and caches the module per loader.
+
 ## Notes
 
 - Routes are matched in insertion order: put catch-all (`*`) routes last.
-- `RouterView` disposes the previous view when the route changes and cancels pending lazy
-  loads.
+- `RouterView` disposes the previous view when the route changes; a slow load that finishes
+  after another navigation never replaces the current view.
+- Route components and lazy views run inside the router's owner chain, so context providers
+  above `RouterProvider` stay available after navigation.
 - `Link` keeps native behaviour for modified clicks (Ctrl/Meta/Shift/middle button).
 - `start()` returns a disposer and can be called again after `stop()`.
 

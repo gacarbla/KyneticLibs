@@ -1,5 +1,5 @@
 import "./jsx-types.js";
-import { Fragment as FragmentRuntime, createNode } from "./dom.js";
+import { createNode, createServerNode, Fragment as FragmentRuntime, isServerMode } from "./dom.js";
 import type { Child, Props } from "./types.js";
 
 /**
@@ -22,7 +22,13 @@ export function jsx(type: unknown, props: Props | null, key?: string | number): 
     // Keys are accepted for API compatibility; keyed collections consume them.
     void key;
     const { children, ...rest } = props ?? {};
-    return createNode(type, rest, toChildren(children));
+    const kids = toChildren(children);
+    // Server rendering and hydration build the universal tree; only live
+    // client rendering touches the DOM.
+    if (isServerMode()) {
+        return createServerNode(type, rest, kids);
+    }
+    return createNode(type, rest, kids);
 }
 
 /** Same as {@link jsx}, used by the compiler for static child lists. */

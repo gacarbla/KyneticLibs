@@ -32,6 +32,21 @@ function createSignupForm(onSubmit?: (values: Values) => void | Promise<void>): 
 }
 
 describe("createForm", () => {
+    it("keeps handleSubmit bound when used as a callback", async () => {
+        const onSubmit = vi.fn();
+        const form = createSignupForm(onSubmit);
+        form.setValue("email", "a@b.c");
+        form.setValue("age", 20);
+
+        const handler = form.handleSubmit;
+        const event = { preventDefault: vi.fn() } as unknown as SubmitEvent;
+        handler(event);
+        await tick();
+
+        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+        expect(onSubmit).toHaveBeenCalledWith({ email: "a@b.c", age: 20 });
+    });
+
     it("tracks values and validity", () => {
         const form = createSignupForm();
 

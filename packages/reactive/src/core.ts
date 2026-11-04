@@ -23,6 +23,8 @@ interface Computation extends Source {
     readonly kind: ComputationKind;
     readonly fn: () => unknown;
     readonly sources: Source[];
+    /** Owner active when the computation was created. */
+    readonly owner: Owner | null;
     cleanups: Dispose[] | null;
     dirty: boolean;
     disposed: boolean;
@@ -35,6 +37,10 @@ interface Computation extends Source {
 /** Scope that owns cleanups for a component or a root. */
 export interface Owner {
     readonly cleanups: Dispose[];
+    /** Enclosing owner, used to resolve context and inherited scopes. */
+    readonly parent: Owner | null;
+    /** Values attached by providers, such as context values. */
+    scope: Map<object, unknown> | null;
 }
 
 let currentComputation: Computation | null = null;
@@ -333,7 +339,9 @@ function readMemo<T>(computation: Computation): T {
 
     cleanSources(computation);
     const previous = currentComputation;
+    const previousOwner = currentOwner;
     currentComputation = computation;
+    currentOwner = computation.owner;
     computation.running = true;
     try {
         computation.value = computation.fn();
@@ -343,6 +351,7 @@ function readMemo<T>(computation: Computation): T {
     } finally {
         computation.running = false;
         currentComputation = previous;
+        currentOwner = previousOwner;
     }
 }
 
@@ -362,6 +371,7 @@ export function createComputed<T>(fn: () => T): Computed<T> {
     const computation: Computation = {
         kind: "memo",
         fn,
+        owner: currentOwner,
         observers: null,
         sources: [],
         cleanups: null,
@@ -413,7 +423,9 @@ function runEffect(computation: Computation): void {
     cleanSources(computation);
 
     const previous = currentComputation;
+    const previousOwner = currentOwner;
     currentComputation = computation;
+    currentOwner = computation.owner;
     computation.running = true;
     try {
         const result = computation.fn();
@@ -424,6 +436,7 @@ function runEffect(computation: Computation): void {
     } finally {
         computation.running = false;
         currentComputation = previous;
+        currentOwner = previousOwner;
     }
 }
 
@@ -457,6 +470,7 @@ export function createEffect(fn: () => unknown): Dispose {
     const computation: Computation = {
         kind: "effect",
         fn,
+        owner: currentOwner,
         observers: null,
         sources: [],
         cleanups: null,
@@ -522,9 +536,9 @@ export function onCleanup(fn: Dispose): void {
  * ```
  */
 export function createRoot<T>(fn: (dispose: Dispose) => T): T {
-    const owner: Owner = { cleanups: [] };
     const parentOwner = currentOwner;
     const parentComputation = currentComputation;
+    const owner: Owner = { cleanups: [], parent: parentOwner, scope: null };
 
     const dispose = (): void => {
         while (owner.cleanups.length > 0) {
@@ -562,9 +576,46 @@ export function runWithOwner<T>(owner: Owner, fn: () => T): T {
     }
 }
 
+/** @internal Returns the owner of the current scope. */
+export function getOwner(): Owner | null {
+    return currentOwner;
+}
+
+/**
+ * Reads a value attached to the current owner or one of its ancestors.
+ *
+ * @internal Used by `@kyneticweb/dom` for owner-scoped context.
+ * @param key Context object used as the scope key.
+ */
+export function getScopedValue(key: object): unknown {
+    let owner = currentOwner;
+    while (owner !== null) {
+        const value = owner.scope?.get(key);
+        if (value !== undefined) {
+            return value;
+        }
+        owner = owner.parent;
+    }
+    return undefined;
+}
+
+/**
+ * Attaches a value to the current owner.
+ *
+ * @internal Used by `@kyneticweb/dom` for owner-scoped context.
+ * @param key Context object used as the scope key.
+ * @param value Value to attach.
+ */
+export function setScopedValue(key: object, value: unknown): void {
+    if (currentOwner === null) {
+        return;
+    }
+    (currentOwner.scope ??= new Map()).set(key, value);
+}
+
 /** @internal Creates an owner without exposing it in the public API. */
 export function createOwner(): Owner {
-    return { cleanups: [] };
+    return { cleanups: [], parent: currentOwner, scope: null };
 }
 
 /** @internal Disposes an owner created with {@link createOwner}. */

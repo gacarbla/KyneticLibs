@@ -4,7 +4,7 @@
  * Fine-grained DOM renderer with typed TSX, components and context.
  */
 
-export { Fragment, isServerMode, jsx, render, setServerMode } from "./dom.js";
+export { createPending, Fragment, isServerMode, isServerRendering, jsx, render, setServerMode } from "./dom.js";
 export { hydrate } from "./hydrate.js";
 export { isVNode } from "./vnode.js";
 export type {
@@ -13,6 +13,7 @@ export type {
     EachVNode,
     ElementVNode,
     FragmentVNode,
+    PendingVNode,
     PortalVNode,
     ProviderVNode,
     VNode,

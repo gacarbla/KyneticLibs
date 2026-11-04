@@ -11,6 +11,7 @@ import {
     onMount,
     Portal,
     render,
+    setServerMode,
     Show,
     useContext,
     type Child,
@@ -61,6 +62,21 @@ describe("jsx elements", () => {
 
         expect(container.textContent).toBe("abc");
     });
+});
+
+it("materializes universal nodes inserted later", () => {
+    const container = document.createElement("div");
+    const previous = setServerMode(true);
+    let stored: Child = null;
+    try {
+        stored = jsx("p", { class: "stored" }, "server text");
+    } finally {
+        setServerMode(previous);
+    }
+
+    container.appendChild(jsx("div", null, () => stored) as Node);
+
+    expect(container.innerHTML).toBe('<div><p class="stored">server text</p></div>');
 });
 
 describe("reactivity", () => {

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createContext, createSignal, For, hydrate, jsx, useContext, type Child } from "@kyneticweb/dom";
 import { renderToString } from "../src/index.js";
 
@@ -64,6 +64,23 @@ describe("hydrate", () => {
 
         expect(container.textContent).toBe("dark");
         expect(container.querySelector("p")).not.toBeNull();
+    });
+
+    it("attaches event handlers while adopting elements", () => {
+        const onClick = vi.fn();
+        function Clicker(): Child {
+            return jsx("button", { onClick }, "click");
+        }
+
+        const container = document.createElement("div");
+        container.innerHTML = renderToString(() => jsx(Clicker, null));
+        const button = container.querySelector("button");
+
+        hydrate(() => jsx(Clicker, null), container);
+        button?.dispatchEvent(new Event("click"));
+
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(container.querySelector("button")).toBe(button);
     });
 
     it("falls back to a client render for collections", async () => {

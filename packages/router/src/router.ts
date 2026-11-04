@@ -1,6 +1,7 @@
 import { createSignal, type Accessor } from "@kyneticweb/reactive";
 import { buildPath, matchPath, normalizePath } from "./match.js";
 import { createPathStrategy } from "./strategies.js";
+import { loadView } from "./views.js";
 import type {
     ExtractParams,
     Guard,
@@ -42,6 +43,8 @@ export interface Router<P extends RouteMap, D extends RouteDefinitions> {
     stop(): void;
     /** Navigates to a route, with typed params when the path has them. */
     navigate<K extends keyof P & string>(name: K, ...args: NavigateArgs<P[K]>): void;
+    /** Loads the lazy view of a route (the current one by default). */
+    preload(name?: keyof D & string): Promise<void>;
     /** Builds the URL for a route. */
     href<K extends keyof P & string>(name: K, ...args: ExtractParamsFor<P[K]>): string;
     /** Registers a navigation guard. Returns the unsubscriber. */
@@ -249,6 +252,16 @@ export function createRouter<const D extends RouteDefinitions>(options: RouterOp
         },
         stop,
         navigate,
+        async preload(name) {
+            const target = (name ?? route()?.name) as (keyof D & string) | undefined;
+            if (target === undefined) {
+                return;
+            }
+            const definition = definitions[target];
+            if (definition?.load !== undefined) {
+                await loadView(definition.load);
+            }
+        },
         href,
         beforeEach(check) {
             guards.add(check);

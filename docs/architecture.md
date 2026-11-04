@@ -58,20 +58,26 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 ## Runtime contract
 
 - `jsx(type, props, ...children)` and the automatic runtime (`jsx`, `jsxs`, `Fragment`) share
-  one node factory.
+  one node factory. Both switch to the universal tree while a server or hydration pass is
+  active, so TSX and manual `jsx()` calls behave the same.
 - Elements: attributes support `class` (string/array/map), `style` (text/object), boolean
   attributes, DOM properties (`value`, `checked`, `disabled`, ...), events and `ref`.
 - Dynamic children use a comment anchor, so updates can replace content without recreating
   the parent.
 - Components execute once inside a `createRoot`; their effects and cleanups are disposed with
   the parent. `onMount` runs after insertion (microtask) and is skipped if disposed first.
-- Context is synchronous: `Context.Provider` resolves its children while the value is on the
-  stack. Pass a signal/accessor as `value` when the value must change at runtime.
+- Context is scope-based: `Context.Provider` stores the value on an owner that wraps its
+  children, and effects, list rows and deferred components inherit it through the owner
+  chain. Server rendering also pushes the value on a synchronous stack, so components resolve
+  it during the same pass. Pass a signal/accessor as `value` when it must change at runtime.
 - `render(component, container)` returns a disposer that clears the container and releases
   every effect.
-- `hydrate(component, container)` rebuilds the server node tree in server mode, adopts the
-  existing DOM for elements/components/dynamic bindings/context, and falls back to a client
-  render when it finds a collection, conditional, portal or boundary.
+- `hydrate(component, container)` rebuilds the node tree in hydration mode, adopts the
+  existing DOM for elements/components/dynamic bindings/context/events/refs, and falls back
+  to a client render when it finds a collection, conditional, portal or boundary.
+- `renderToStringAsync(component)` collects the promises registered by `createPending` nodes,
+  awaits them and renders again (up to 10 passes). The component behind a pending boundary
+  must cache its result so the later pass is synchronous.
 
 ## Benchmark
 
@@ -112,6 +118,19 @@ React + ReactDOM.
 Next performance work: batch DOM writes inside a list update, compile static subtrees into
 cloneable templates, and measure with the official `js-framework-benchmark` harness.
 
+## Server rendering example
+
+`examples/ssr` (run `npm run build:ssr && npm run start:ssr`) is the reference integration:
+
+- one router per request with `createMemoryStrategy(url)` and one i18n instance per request;
+- `renderToStringAsync` awaits lazy routes before responding;
+- the client starts the path router and calls `router.preload()` before `hydrate`, so the
+  first client render matches the server markup;
+- hydration adopts the header, the counter, the locale switcher and the form, attaching input
+  handlers and `onMount`;
+- the contact form exercises validation, thunks for `value`/`disabled`, and a conditional
+  success view.
+
 ## Current limitations
 
 - `For` reuses a row when the item object changes under the same key: reads go through a
@@ -120,8 +139,9 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 - Spread attributes are allowed; values are eager unless they are already thunks (form
   bindings provide reactive thunks).
 - Context values are not reactive unless they are accessors.
-- Hydration adopts elements, components, bindings and context; collections and conditionals
-  currently fall back to a client render. Async rendering (Suspense, lazy routes) is M6.
+- Hydration adopts elements, components, bindings, context, events and refs; collections,
+  conditionals, portals and error boundaries fall back to a client render.
+- Lazy routes need `preload()` before hydration to avoid a loading flash.
 - SVG elements are created with the SVG namespace, but `<foreignObject>` children remain SVG.
 
 ## Implemented (M1–M4)
@@ -138,6 +158,6 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 | --- | --- |
 | M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components — **delivered** |
 | M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) — **delivered** |
-| M6 | `renderToString`, hydration, streaming |
+| M6 | `renderToString`, `renderToStringAsync`, hydration, streaming — **async rendering and hydration delivered**; streaming and fine-grained list hydration next |
 | M7 | Test renderer, devtools, component library |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |

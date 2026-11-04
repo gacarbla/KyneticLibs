@@ -147,11 +147,16 @@ class FormManager<V extends FormValues> implements Form<V> {
         }
     }
 
-    /** Prevents the native submit and runs {@link submit}. */
-    public handleSubmit(event: SubmitEvent): void {
+    /**
+     * Prevents the native submit and runs {@link submit}.
+     *
+     * Defined as an arrow property so `onSubmit={form.handleSubmit}` keeps the
+     * instance as `this`.
+     */
+    public readonly handleSubmit = (event: SubmitEvent): void => {
         event.preventDefault();
         void this.submit();
-    }
+    };
 }
 
 /**

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { jsx, render, type Child } from "@kyneticweb/dom";
+import { createContext, jsx, render, useContext, type Child } from "@kyneticweb/dom";
 import {
     buildPath,
     createHashStrategy,
@@ -167,6 +167,62 @@ describe("view and links", () => {
         await tick();
         await tick();
         expect(container.textContent).toBe("lazy");
+    });
+
+    it("keeps provider context for route components after navigation", async () => {
+        const Theme = createContext("light");
+        function Themed(): Child {
+            return jsx("p", null, useContext(Theme));
+        }
+        const themedRoutes = {
+            home: { path: "/", component: (): Child => jsx("p", null, "home") },
+            about: { path: "/about", component: (): Child => jsx(Themed, null) },
+        } as const;
+        const router = createRouter({ routes: themedRoutes, strategy: createMemoryStrategy("/") });
+        const container = document.createElement("div");
+
+        render(
+            () =>
+                jsx(Theme.Provider, { value: "dark" }, () =>
+                    jsx(RouterProvider, { router }, () => jsx(RouterView, null)),
+                ),
+            container,
+        );
+        router.start();
+        await tick();
+        expect(container.textContent).toBe("home");
+
+        router.navigate("about");
+        await tick();
+        expect(container.textContent).toBe("dark");
+    });
+
+    it("keeps provider context for lazy route components", async () => {
+        const Theme = createContext("light");
+        function Themed(): Child {
+            return jsx("p", null, useContext(Theme));
+        }
+        const themedRoutes = {
+            home: { path: "/", component: (): Child => jsx("p", null, "home") },
+            about: { path: "/about", load: async () => ({ default: Themed }) },
+        } as const;
+        const router = createRouter({ routes: themedRoutes, strategy: createMemoryStrategy("/") });
+        const container = document.createElement("div");
+
+        render(
+            () =>
+                jsx(Theme.Provider, { value: "dark" }, () =>
+                    jsx(RouterProvider, { router }, () => jsx(RouterView, null)),
+                ),
+            container,
+        );
+        router.start();
+        await tick();
+
+        router.navigate("about");
+        await tick();
+        await tick();
+        expect(container.textContent).toBe("dark");
     });
 
     it("navigates when a Link is clicked", () => {

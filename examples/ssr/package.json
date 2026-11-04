@@ -1,0 +1,26 @@
+{
+    "name": "@kyneticweb/example-ssr",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Server rendering and hydration example with router, i18n and forms.",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build && vite build --ssr src/server.tsx --outDir dist/server",
+        "start": "node dist/server/server.js"
+    },
+    "dependencies": {
+        "@kyneticweb/compiler": "*",
+        "@kyneticweb/dom": "*",
+        "@kyneticweb/forms": "*",
+        "@kyneticweb/i18n": "*",
+        "@kyneticweb/reactive": "*",
+        "@kyneticweb/router": "*",
+        "@kyneticweb/ssr": "*"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.0",
+        "typescript": "^5.9.3",
+        "vite": "^8.0.0"
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "jsx": "react-jsx",
+        "jsxImportSource": "@kyneticweb/dom",
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "types": ["@kyneticweb/dom", "node"]
+    },
+    "include": ["src", "vite.config.ts"]
+}

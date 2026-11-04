@@ -94,6 +94,14 @@ npm run build:benchmark
 npx vite preview --config examples/benchmark/vite.config.ts examples/benchmark
 ```
 
+A server-rendered application with router, i18n, forms and hydration lives in
+[`examples/ssr`](./examples/ssr):
+
+```bash
+npm run build:ssr
+npm run start:ssr   # http://localhost:4173
+```
+
 ## Development
 
 ```bash

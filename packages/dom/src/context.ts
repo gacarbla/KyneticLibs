@@ -1,5 +1,13 @@
+import {
+    createOwner,
+    disposeOwner,
+    getScopedValue,
+    onCleanup,
+    runWithOwner,
+    setScopedValue,
+} from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
-import { isServerMode } from "./dom.js";
+import { isServerRendering } from "./dom.js";
 import type { Child } from "./types.js";
 
 /**
@@ -9,8 +17,12 @@ import type { Child } from "./types.js";
  * called in the component body, not inside a later effect. Passing an accessor
  * as `value` keeps the context reactive.
  *
+ * The provider also attaches the value to an owner scope, which is what keeps
+ * context available for effects and components created later (lazy routes,
+ * deferred views, list rows).
+ *
  * @example
- * ```ts
+ * ```tsx
  * const Theme = createContext("light");
  *
  * function Panel() {
@@ -30,11 +42,12 @@ export class Context<T> {
     public constructor(public readonly defaultValue: T) {}
 
     /**
-     * Provider component. Children are resolved while the value is on the
-     * stack, so nested components read it synchronously.
+     * Provider component. Children resolve while the value is on the stack
+     * (server rendering) or inside a dedicated owner scope (client and
+     * hydration).
      */
     public readonly Provider = (props: { value: T; children?: Child }): Child => {
-        if (isServerMode()) {
+        if (isServerRendering()) {
             return {
                 kind: "provider",
                 context: this,
@@ -42,7 +55,15 @@ export class Context<T> {
                 children: props.children,
             } as unknown as Child;
         }
-        return this.runWith(props.value, () => resolveChild(props.children));
+
+        const scope = createOwner();
+        onCleanup(() => disposeOwner(scope));
+        return runWithOwner(scope, () => {
+            // Wrapped so an `undefined` provider value is distinguishable from
+            // "no provider in the owner chain".
+            setScopedValue(this, { value: props.value });
+            return resolveChild(props.children);
+        });
     };
 
     /** Runs `render` with `value` on the stack. */
@@ -57,6 +78,10 @@ export class Context<T> {
 
     /** Reads the active value or the default one. */
     public read(): T {
+        const scoped = getScopedValue(this) as { value: T } | undefined;
+        if (scoped !== undefined) {
+            return scoped.value;
+        }
         const current = this.#stack[this.#stack.length - 1];
         return current === undefined ? this.defaultValue : current;
     }

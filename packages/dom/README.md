@@ -128,8 +128,9 @@ function Panel() {
 </Theme.Provider>;
 ```
 
-Context is synchronous: read it in the component body. Pass a signal as `value` when it must
-change at runtime.
+Context is read in the component body. The provider also attaches the value to an owner
+scope, so effects, list rows and deferred components created later keep reading it. Pass a
+signal as `value` when it must change at runtime.
 
 ## Lifecycle
 
@@ -143,6 +144,9 @@ function Widget() {
 }
 ```
 
+`onMount` runs once the tree is in the DOM. During server rendering it is skipped; during
+hydration it runs after the adopted nodes are live.
+
 ## Hydration
 
 ```tsx
@@ -152,9 +156,13 @@ hydrate(() => <App />, document.getElementById("app")!);
 ```
 
 The server markup produced by `@kyneticweb/ssr` is adopted in place: elements, components,
-fragments, dynamic text/attributes and context providers keep their DOM nodes and only attach
-bindings. Collections, conditionals, portals and error boundaries fall back to a client render
-of the root, which is correct but recreates those nodes.
+fragments, dynamic text/attributes, context providers, event handlers and `ref` callbacks
+keep their DOM nodes and only attach bindings. Collections, conditionals, portals and error
+boundaries fall back to a client render of the root, which is correct but recreates those
+nodes.
+
+A universal node kept from a server or hydration pass can be inserted later: `toNodes`
+materializes it into real DOM instead of stringifying it.
 
 ## API
 
@@ -163,19 +171,20 @@ of the root, which is correct but recreates those nodes.
 | `jsx`, `Fragment` | Classic JSX factories. |
 | `render(component, container)` | Mounts a tree; returns a disposer. |
 | `hydrate(component, container)` | Adopts server markup and attaches bindings. |
+| `createPending(promise, fallback)` | Async boundary for `renderToStringAsync`. |
 | `For`, `Show` | Keyed collections and conditional branches with per-item owners. |
 | `Portal`, `ErrorBoundary` | Overlays and render error isolation. |
-| `createContext`, `Context`, `useContext` | Synchronous context. |
+| `createContext`, `Context`, `useContext` | Owner-scoped context. |
 | `onMount`, `onCleanup` | Post-insertion hook and cleanup registration. |
 | `createSignal`, `createComputed`, `createEffect`, `batch`, `untrack`, `createRoot` | Re-exported from `@kyneticweb/reactive`. |
 
 ## Limitations (0.1)
 
 - `hydrate` falls back to a client render for collections, conditionals, portals and boundaries.
+- Lazy routes need `router.preload()` before hydration to avoid showing the loading view.
 - `For` updates a row in place when the item object changes under the same key; only
   top-level properties are reactive, so nested mutations need a new object or an accessor.
 - Component props are eager; use accessors for reactive values.
-- No suspense or async rendering yet.
 - SVG elements use the SVG namespace; `<foreignObject>` children are an edge case still to cover.
 
 See [docs/architecture.md](../../docs/architecture.md) for the compiler contract.

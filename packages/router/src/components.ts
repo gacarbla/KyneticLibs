@@ -1,6 +1,16 @@
-import { createContext, createEffect, createSignal, jsx, onCleanup, useContext, type Child } from "@kyneticweb/dom";
+import {
+    createContext,
+    createEffect,
+    createPending,
+    createSignal,
+    isServerRendering,
+    jsx,
+    useContext,
+    type Child,
+} from "@kyneticweb/dom";
 import type { Router } from "./router.js";
 import type { NavigateOptions, RouteDefinitions, RouteMap } from "./types.js";
+import { cachedView, loadView } from "./views.js";
 
 /** Internal context that carries the active router. */
 const RouterContext = createContext<Router<RouteMap, RouteDefinitions> | null>(null);
@@ -58,41 +68,88 @@ export interface RouterViewProps {
  * Renders the view of the current route.
  *
  * Lazy routes are loaded once per navigation; a cancelled navigation never
- * commits its view.
+ * commits its view. On the server the matched view is rendered directly, and a
+ * lazy route becomes a pending node that `renderToStringAsync` awaits.
  */
 export function RouterView(props: RouterViewProps = {}): Child {
     const router = useRouter();
-    const view = createSignal<Child>(props.fallback ?? null);
+    if (isServerRendering()) {
+        return renderServerView(router, props);
+    }
+
+    // The signal holds a lazy value (factory or thunk) instead of eager markup,
+    // so deferred views are created inside the owner chain and keep context.
+    const view = createSignal<Child>(() => props.fallback ?? null);
+    const resolved = createSignal<{ name: string; component: () => Child } | null>(null);
 
     createEffect(() => {
         const current = router.route();
+        const ready = resolved();
+
         if (current === null) {
-            view.set(props.fallback ?? null);
+            view.set(() => props.fallback ?? null);
             return;
         }
 
         const definition = router.definitions[current.name as string];
-        if (definition?.component !== undefined) {
-            view.set(definition.component());
+        if (definition === undefined) {
+            view.set(() => props.fallback ?? null);
             return;
         }
-        if (definition?.load !== undefined) {
-            let cancelled = false;
-            onCleanup(() => {
-                cancelled = true;
-            });
-            view.set(props.loading ?? null);
-            void definition.load().then((module) => {
-                if (!cancelled) {
-                    view.set(module.default());
-                }
-            });
+        if (definition.component !== undefined) {
+            view.set(definition.component);
             return;
         }
-        view.set(props.fallback ?? null);
+
+        const load = definition.load;
+        if (load === undefined) {
+            view.set(() => props.fallback ?? null);
+            return;
+        }
+
+        const cached = cachedView(load);
+        if (cached !== undefined) {
+            view.set(cached);
+            return;
+        }
+        if (ready !== null && ready.name === current.name) {
+            view.set(ready.component);
+            return;
+        }
+
+        view.set(() => props.loading ?? null);
+        const name = current.name as string;
+        void loadView(load).then((component) => resolved.set({ name, component }));
     });
 
     return view;
+}
+
+/** Renders the active route without effects. */
+function renderServerView(router: Router<RouteMap, RouteDefinitions>, props: RouterViewProps): Child {
+    const current = router.route();
+    if (current === null) {
+        return props.fallback ?? null;
+    }
+
+    const definition = router.definitions[current.name as string];
+    if (definition === undefined) {
+        return props.fallback ?? null;
+    }
+    if (definition.component !== undefined) {
+        return definition.component();
+    }
+
+    const load = definition.load;
+    if (load === undefined) {
+        return props.fallback ?? null;
+    }
+
+    const resolved = cachedView(load);
+    if (resolved !== undefined) {
+        return resolved();
+    }
+    return createPending(loadView(load), props.loading ?? null);
 }
 
 /** Props accepted by {@link Link}. */

@@ -6,6 +6,8 @@
  * same components can be rendered to HTML without a DOM.
  */
 
+import type { Owner } from "@kyneticweb/reactive";
+
 /** Element node. */
 export interface ElementVNode {
     readonly kind: "element";
@@ -20,6 +22,8 @@ export interface ComponentVNode {
     readonly component: (props: never) => unknown;
     readonly props: Record<string, unknown>;
     readonly children: unknown[];
+    /** Owner active when the node was created, so hydration can restore context. */
+    readonly owner?: Owner | null;
 }
 
 /** Fragment node. */
@@ -65,9 +69,30 @@ export interface ProviderVNode {
     readonly children: unknown;
 }
 
+/**
+ * Async boundary node produced by {@link createPending}.
+ *
+ * Synchronous rendering emits `children` (usually a loading placeholder).
+ * `renderToStringAsync` awaits `promise` and renders again, so the component
+ * behind the boundary must cache its result once the promise settles.
+ */
+export interface PendingVNode {
+    readonly kind: "pending";
+    readonly promise: Promise<unknown>;
+    readonly children: unknown;
+}
+
 /** Any server node. */
 export type VNode =
-    ElementVNode | ComponentVNode | FragmentVNode | EachVNode | WhenVNode | PortalVNode | BoundaryVNode | ProviderVNode;
+    | ElementVNode
+    | ComponentVNode
+    | FragmentVNode
+    | EachVNode
+    | WhenVNode
+    | PortalVNode
+    | BoundaryVNode
+    | ProviderVNode
+    | PendingVNode;
 
 /** Reports whether a value is a server node. */
 export function isVNode(value: unknown): value is VNode {

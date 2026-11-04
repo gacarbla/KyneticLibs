@@ -1,6 +1,6 @@
-import { createEffect, createRoot, onCleanup, type Dispose } from "@kyneticweb/reactive";
+import { createEffect, createRoot, onCleanup, runWithOwner, type Dispose } from "@kyneticweb/reactive";
 import { isVNode, type VNode } from "./vnode.js";
-import { render, setServerMode, setStaticProp, toNodes } from "./dom.js";
+import { addEvent, render, setRenderMode, setStaticProp, toNodes } from "./dom.js";
 import type { Child, Props } from "./types.js";
 
 /** Thrown when the server markup cannot be adopted. */
@@ -25,7 +25,7 @@ class HydrationMismatch extends Error {}
  * ```
  */
 export function hydrate(component: () => Child, container: Element): Dispose {
-    const previous = setServerMode(true);
+    const previousMode = setRenderMode("hydrate");
     try {
         const dispose = createRoot((release) => {
             try {
@@ -41,10 +41,10 @@ export function hydrate(component: () => Child, container: Element): Dispose {
         return dispose;
     } catch {
         // Unsupported node or markup mismatch: render the tree on the client.
-        setServerMode(false);
+        setRenderMode("client");
         return render(component, container);
     } finally {
-        setServerMode(previous);
+        setRenderMode(previousMode);
     }
 }
 
@@ -118,8 +118,13 @@ function hydrateNode(node: VNode, parent: Node, cursor: Node | null): Node | nul
             } else if (node.children.length > 1) {
                 props["children"] = node.children;
             }
-            const output = (node.component as (props: Props) => unknown)(props);
-            return hydrateValue(output, parent, cursor);
+            const run = (): Node | null => {
+                const output = (node.component as (props: Props) => unknown)(props);
+                return hydrateValue(output, parent, cursor);
+            };
+            // The owner captured when the node was created carries the
+            // provider scopes, so context works for deferred components.
+            return node.owner === undefined || node.owner === null ? run() : runWithOwner(node.owner, run);
         }
         case "fragment": {
             let next = cursor;
@@ -134,6 +139,7 @@ function hydrateNode(node: VNode, parent: Node, cursor: Node | null): Node | nul
         case "when":
         case "portal":
         case "boundary":
+        case "pending":
             throw new HydrationMismatch(`Hydration for "${node.kind}" nodes is not supported yet.`);
     }
 }
@@ -146,7 +152,19 @@ function hydrateElement(node: Extract<VNode, { kind: "element" }>, cursor: Node 
     }
 
     for (const [key, value] of Object.entries(node.props)) {
-        if (key === "children" || key === "key" || key === "ref" || key.startsWith("on")) {
+        if (key === "children" || key === "key") {
+            continue;
+        }
+        if (key === "ref") {
+            if (typeof value === "function") {
+                const ref = value as (element: Element | null) => void;
+                ref(element);
+                onCleanup(() => ref(null));
+            }
+            continue;
+        }
+        if (key.startsWith("on") && typeof value === "function") {
+            addEvent(element, key, value as EventListener);
             continue;
         }
         if (typeof value !== "function") {

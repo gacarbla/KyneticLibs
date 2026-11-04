@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createContext, ErrorBoundary, For, jsx, Show, useContext, type Child } from "@kyneticweb/dom";
+import { createContext, ErrorBoundary, For, Fragment, jsx, Show, useContext, type Child } from "@kyneticweb/dom";
+import { jsx as jsxRuntime } from "@kyneticweb/dom/jsx-runtime";
 import { renderToString } from "../src/index.js";
 
 describe("renderToString", () => {
@@ -7,6 +8,17 @@ describe("renderToString", () => {
         const html = renderToString(() => jsx("div", { class: "box", id: "app" }, jsx("span", null, "hello")));
 
         expect(html).toBe('<div class="box" id="app"><span>hello</span></div>');
+    });
+
+    it("renders nodes produced by the automatic JSX runtime", () => {
+        const html = renderToString(() =>
+            jsxRuntime("div", {
+                class: "auto",
+                children: [jsxRuntime("p", { children: "automatic" }), jsxRuntime(Fragment, { children: "tail" })],
+            }),
+        );
+
+        expect(html).toBe('<div class="auto"><p>automatic</p>tail</div>');
     });
 
     it("escapes text and attributes", () => {
