@@ -5,6 +5,7 @@ import {
     createEffect,
     createRoot,
     createSignal,
+    getReactiveStats,
     onCleanup,
     setErrorHandler,
     untrack,
@@ -242,5 +243,28 @@ describe("setErrorHandler", () => {
         expect(other).toHaveBeenCalledTimes(1);
 
         setErrorHandler(previous);
+    });
+});
+
+describe("getReactiveStats", () => {
+    it("counts signals, computeds, effects and runs", async () => {
+        const before = getReactiveStats();
+        const count = createSignal(0);
+        const doubled = createComputed(() => count() * 2);
+        const stop = createEffect(() => {
+            doubled();
+        });
+
+        count.set(1);
+        await tick();
+
+        const after = getReactiveStats();
+        expect(after.signals - before.signals).toBe(1);
+        expect(after.computeds - before.computeds).toBe(1);
+        expect(after.effects - before.effects).toBe(1);
+        expect(after.effectRuns - before.effectRuns).toBeGreaterThanOrEqual(2);
+        expect(after.pending).toBe(0);
+
+        stop();
     });
 });

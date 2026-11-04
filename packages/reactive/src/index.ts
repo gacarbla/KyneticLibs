@@ -11,6 +11,7 @@ export {
     createOwner,
     disposeOwner,
     getOwner,
+    getReactiveStats,
     getScopedValue,
     runWithOwner,
     runWithOwnerTracked,
@@ -18,4 +19,4 @@ export {
     setScopedValue,
     setServerMode,
 } from "./core.js";
-export type { ErrorHandler } from "./core.js";
+export type { ErrorHandler, ReactiveStats } from "./core.js";

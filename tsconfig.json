@@ -23,6 +23,9 @@
             "path": "packages/ssr"
         },
         {
+            "path": "packages/testing"
+        },
+        {
             "path": "packages/container"
         },
         {

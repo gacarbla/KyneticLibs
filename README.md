@@ -25,6 +25,7 @@ without extra setup.
 | [`@kyneticweb/reactive`](./packages/reactive) | Signals, computed values, effects and ownership scopes. |
 | [`@kyneticweb/router`](./packages/router) | Typed routing with path, hash and memory strategies. |
 | [`@kyneticweb/ssr`](./packages/ssr) | Server-side rendering without a DOM. |
+| [`@kyneticweb/testing`](./packages/testing) | Mount, query, interact and wait in tests. |
 | [`@kyneticweb/utils`](./packages/utils) | Date formatting, text wrapping and identifier helpers. |
 | [`@kyneticweb/versions`](./packages/versions) | Schema driven version parsing, validation and comparison. |
 

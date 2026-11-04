@@ -280,6 +280,46 @@ export function untrack<T>(fn: () => T): T {
 // Signals
 // ---------------------------------------------------------------------------
 
+/** Counters exposed for development tools and diagnostics. */
+export interface ReactiveStats {
+    /** Signals created since the process started. */
+    readonly signals: number;
+    /** Computed values created since the process started. */
+    readonly computeds: number;
+    /** Effects created since the process started. */
+    readonly effects: number;
+    /** Effect executions since the process started. */
+    readonly effectRuns: number;
+    /** Effects waiting for the next flush. */
+    readonly pending: number;
+}
+
+let createdSignals = 0;
+let createdComputeds = 0;
+let createdEffects = 0;
+let effectRuns = 0;
+
+/**
+ * Returns a snapshot of reactive activity.
+ *
+ * Counters are cumulative and cheap to maintain, so a devtools panel can poll
+ * them without instrumenting individual signals.
+ *
+ * @example
+ * ```ts
+ * const { signals, effects, pending } = getReactiveStats();
+ * ```
+ */
+export function getReactiveStats(): ReactiveStats {
+    return {
+        signals: createdSignals,
+        computeds: createdComputeds,
+        effects: createdEffects,
+        effectRuns,
+        pending: pendingEffects.length,
+    };
+}
+
 /**
  * Creates an observable value.
  *
@@ -296,6 +336,7 @@ export function untrack<T>(fn: () => T): T {
  * ```
  */
 export function createSignal<T>(initial: T, options: SignalOptions<T> = {}): Signal<T> {
+    createdSignals += 1;
     const equals = options.equals ?? Object.is;
     const source: Source = { observers: null };
     let value = initial;
@@ -368,6 +409,7 @@ function readMemo<T>(computation: Computation): T {
  * ```
  */
 export function createComputed<T>(fn: () => T): Computed<T> {
+    createdComputeds += 1;
     const computation: Computation = {
         kind: "memo",
         fn,
@@ -419,6 +461,7 @@ function runEffect(computation: Computation): void {
         return;
     }
 
+    effectRuns += 1;
     runCleanups(computation);
     cleanSources(computation);
 
@@ -467,6 +510,7 @@ export function createEffect(fn: () => unknown): Dispose {
         return () => undefined;
     }
 
+    createdEffects += 1;
     const computation: Computation = {
         kind: "effect",
         fn,

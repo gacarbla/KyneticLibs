@@ -1,0 +1,55 @@
+{
+    "name": "@kyneticweb/testing",
+    "version": "0.1.0",
+    "description": "DOM testing helpers for the Kynetic runtime: queries, events and reactive waiting.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "sideEffects": false,
+    "engines": {
+        "node": ">=20"
+    },
+    "keywords": [
+        "testing",
+        "dom",
+        "signals",
+        "kyneticweb"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/gacarbla/KyneticLibs.git",
+        "directory": "packages/testing"
+    },
+    "bugs": {
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://github.com/gacarbla/KyneticLibs/issues/new"
+    },
+    "author": {
+        "name": "gacarbla",
+        "email": "gacarbla@gacarbla.es",
+        "url": "https://gacarbla.es"
+    },
+    "license": "CUSTOM-NON-COMMERCIAL",
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "tsc -b --clean"
+    },
+    "dependencies": {
+        "@kyneticweb/dom": "^0.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.0"
+    }
+}

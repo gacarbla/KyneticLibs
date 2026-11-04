@@ -33,8 +33,18 @@ export {
     createEffect,
     createRoot,
     createSignal,
+    getReactiveStats,
     onCleanup,
     setErrorHandler,
     untrack,
 } from "@kyneticweb/reactive";
-export type { Accessor, Computed, Dispose, ErrorHandler, Setter, Signal, SignalOptions } from "@kyneticweb/reactive";
+export type {
+    Accessor,
+    Computed,
+    Dispose,
+    ErrorHandler,
+    ReactiveStats,
+    Setter,
+    Signal,
+    SignalOptions,
+} from "@kyneticweb/reactive";

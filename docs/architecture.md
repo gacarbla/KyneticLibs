@@ -24,9 +24,10 @@ experience, not a clone.
     ├── @kyneticweb/router     typed routes, guards, lazy views, links
     ├── @kyneticweb/i18n       typed messages, plurals, locale formatting
     ├── @kyneticweb/forms      typed form state, validation, accessible fields
-    ├── @kyneticweb/ssr        server rendering without a DOM
+    ├── @kyneticweb/ssr        server rendering and streaming without a DOM
+    ├── @kyneticweb/testing    mount, query, interact and wait in tests
     ├── @kyneticweb/compiler   Babel + Vite plugin (dynamic expression thunks)
-    └── (future) test, devtools, ui
+    └── (future) devtools, ui
 ```
 
 ## Compiler contract
@@ -70,6 +71,8 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
   children, and effects, list rows and deferred components inherit it through the owner
   chain. Server rendering also pushes the value on a synchronous stack, so components resolve
   it during the same pass. Pass a signal/accessor as `value` when it must change at runtime.
+- `getReactiveStats()` exposes cumulative signal/computed/effect counters and the pending
+  effect queue, so devtools can poll activity without instrumenting each node.
 - `render(component, container)` returns a disposer that clears the container and releases
   every effect.
 - `hydrate(component, container)` rebuilds the node tree in hydration mode, adopts the
@@ -171,5 +174,5 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 | M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components — **delivered** |
 | M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) — **delivered** |
 | M6 | `renderToString`, `renderToStringAsync`, in-order and out-of-order streaming, hydration of elements, context, lists and conditionals — **delivered** |
-| M7 | Test renderer, devtools, component library |
+| M7 | `@kyneticweb/testing` (mount, queries, events, waitFor) — **delivered**; devtools and component library next |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |

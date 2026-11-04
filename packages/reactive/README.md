@@ -98,6 +98,7 @@ dispose();
 | `untrack(fn)` | Reads without subscribing the running computation. |
 | `onCleanup(fn)` | Registers a cleanup for the running effect or owner. |
 | `setErrorHandler(fn)` | Replaces the handler for errors thrown by scheduled effects. |
+| `getReactiveStats()` | Snapshot with signal/computed/effect counts, effect runs and pending effects. |
 
 ## License
 

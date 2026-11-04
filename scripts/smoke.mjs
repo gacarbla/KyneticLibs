@@ -27,6 +27,7 @@ const PACKAGE_NAMES = [
     "i18n",
     "forms",
     "ssr",
+    "testing",
     "container",
     "counter",
     "versions",
