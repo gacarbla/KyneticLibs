@@ -54,8 +54,25 @@ streams isolated.
 
 For Node streams: `Readable.from(renderChunks(() => <App />)).pipe(response)`.
 
-Streaming is in order: content after a pending boundary waits for it. Out-of-order
-boundaries (placeholder plus a script that swaps content later) are not implemented yet.
+### Out-of-order
+
+Pass `outOfOrder: true` to keep streaming past a pending boundary:
+
+```ts
+const stream = renderToStream(() => <App />, { outOfOrder: true });
+```
+
+The fallback is emitted in place and the rest of the page follows immediately. When a
+boundary resolves, the stream appends a hidden container with the resolved HTML and a small
+script that replaces the fallback between its markers. Patches are emitted in registration
+order, so nested boundaries always find their parent content in the document. Without
+JavaScript the fallback stays visible, which degrades gracefully.
+
+Place the client entry script **after** the app marker in the template. The stream writes
+patches before that script is parsed, so hydration always sees the final DOM.
+
+In-order streaming remains the default: it needs no JavaScript to show the resolved content
+and keeps the HTML simpler.
 
 ## Async boundaries
 
@@ -117,8 +134,8 @@ branch, and then lets the normal reactive reconciler take over.
 
 - Portals, error boundaries and pending boundaries are not hydrated in place; they fall back
   to a client render of the root.
-- `renderToStream` is in order and requires a `retry` on every pending node. Out-of-order
-  streaming is not implemented yet.
+- Streaming needs a `retry` on every pending node. Keep the client entry script after the app
+  marker so hydration runs after out-of-order patches.
 - Lazy routes need `router.preload()` (or `renderToStringAsync`/`renderToStream`) before
   hydration to avoid a loading flash.
 - Do not return real DOM nodes from a component while rendering on the server.

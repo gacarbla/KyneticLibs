@@ -381,12 +381,22 @@ function invoke<T>(env: ServerEnv | null, fn: () => T): T {
     }
 }
 
+/** Options accepted by {@link renderToStream}. */
+export interface StreamOptions extends RenderOptions {
+    /**
+     * Emit the shell first and patch pending boundaries later with inline
+     * scripts. Without it, the stream waits at each pending boundary.
+     */
+    readonly outOfOrder?: boolean;
+}
+
 /**
  * Renders a component tree as HTML chunks.
  *
- * The shell is emitted as soon as it is ready; a pending boundary awaits its
- * promise and then renders only its own subtree through `retry`. That keeps
- * time-to-first-byte low without re-rendering the whole page.
+ * The shell is emitted as soon as it is ready. In-order streaming awaits each
+ * pending boundary and then renders only its subtree through `retry`. With
+ * `outOfOrder`, the fallback is emitted in place and the resolved content is
+ * patched by an inline script, so content after the boundary never waits.
  *
  * Use it when you need a Node stream:
  *
@@ -399,12 +409,16 @@ function invoke<T>(env: ServerEnv | null, fn: () => T): T {
  */
 export async function* renderChunks(
     component: () => unknown,
-    options: RenderOptions = {},
+    options: StreamOptions = {},
 ): AsyncGenerator<string, void, unknown> {
+    if (options.outOfOrder === true) {
+        yield* renderOutOfOrderChunks(component, options);
+        return;
+    }
     if (options.doctype === true) {
         yield "<!doctype html>";
     }
-    yield* renderValueChunks(invoke(null, component), null);
+    yield* renderValueChunks(invoke(null, component), null, null);
 }
 
 /**
@@ -416,11 +430,11 @@ export async function* renderChunks(
  *
  * @example
  * ```ts
- * const stream = renderToStream(() => <App />, { doctype: true });
+ * const stream = renderToStream(() => <App />, { doctype: true, outOfOrder: true });
  * await stream.pipeTo(new WritableStream({ write: (chunk) => response.write(chunk) }));
  * ```
  */
-export function renderToStream(component: () => unknown, options: RenderOptions = {}): ReadableStream<Uint8Array> {
+export function renderToStream(component: () => unknown, options: StreamOptions = {}): ReadableStream<Uint8Array> {
     const chunks = renderChunks(component, options);
     const encoder = new TextEncoder();
 
@@ -439,8 +453,126 @@ export function renderToStream(component: () => unknown, options: RenderOptions 
     });
 }
 
+/** A pending boundary whose content is patched later. */
+interface OpenBoundary {
+    readonly id: number;
+    readonly promise: Promise<unknown>;
+    readonly retry: () => unknown;
+    readonly env: ServerEnv | null;
+}
+
+/** Registry used by out-of-order streaming. */
+interface BoundarySink {
+    open(promise: Promise<unknown>, retry: () => unknown, env: ServerEnv | null): number;
+    next(): Promise<OpenBoundary>;
+    hasPending(): boolean;
+    complete(): void;
+}
+
+/**
+ * Collects boundaries and releases them in registration order.
+ *
+ * Order matters for nesting: a parent patch must land before an inner patch so
+ * the inner markers are already in the document.
+ */
+class OutOfOrderSink implements BoundarySink {
+    #nextId = 0;
+    #pending = 0;
+    readonly #queue: Array<{ boundary: OpenBoundary; settled: boolean }> = [];
+    #waiter: (() => void) | null = null;
+
+    public open(promise: Promise<unknown>, retry: () => unknown, env: ServerEnv | null): number {
+        const id = this.#nextId++;
+        this.#pending += 1;
+        const entry = { boundary: { id, promise, retry, env }, settled: false };
+        this.#queue.push(entry);
+        const settle = (): void => {
+            entry.settled = true;
+            this.#waiter?.();
+        };
+        promise.then(settle, settle);
+        return id;
+    }
+
+    public hasPending(): boolean {
+        return this.#pending > 0;
+    }
+
+    public complete(): void {
+        this.#pending -= 1;
+    }
+
+    public async next(): Promise<OpenBoundary> {
+        for (;;) {
+            const entry = this.#queue[0];
+            if (entry === undefined) {
+                throw new Error("No open boundary to resolve.");
+            }
+            if (entry.settled) {
+                this.#queue.shift();
+                return entry.boundary;
+            }
+            await new Promise<void>((resolve) => {
+                this.#waiter = resolve;
+            });
+            this.#waiter = null;
+        }
+    }
+}
+
+/**
+ * Hidden content plus the script that swaps it into the boundary.
+ *
+ * The script finds the boundary markers, removes the fallback between them and
+ * moves the hidden children in place. It is self-contained, so nested patches
+ * work without a global runtime.
+ */
+function boundaryPatch(id: number, content: string): string {
+    const script =
+        `(function(){var c=document.getElementById("k-c-${id}");if(!c)return;` +
+        `var w=document.createTreeWalker(document.documentElement,128),n,s=null,e=null;` +
+        `while(n=w.nextNode()){var d=n.data;if(d==="k:s-${id}")s=n;else if(d==="k:/s-${id}"){e=n;break;}}` +
+        `if(!s||!e)return;var p=s.parentNode,q=s.nextSibling;` +
+        `while(q&&q!==e){var x=q.nextSibling;p.removeChild(q);q=x;}` +
+        `while(c.firstChild)p.insertBefore(c.firstChild,e);c.parentNode&&c.parentNode.removeChild(c);})();`;
+    return `<div id="k-c-${id}" hidden>${content}</div><script>${script}</script>`;
+}
+
+/** Streams the shell and patches each boundary once it settles. */
+async function* renderOutOfOrderChunks(
+    component: () => unknown,
+    options: StreamOptions,
+): AsyncGenerator<string, void, unknown> {
+    if (options.doctype === true) {
+        yield "<!doctype html>";
+    }
+
+    const sink = new OutOfOrderSink();
+    yield* renderValueChunks(invoke(null, component), null, sink);
+
+    while (sink.hasPending()) {
+        const boundary = await sink.next();
+        let content = "";
+        try {
+            for await (const chunk of renderValueChunks(invoke(boundary.env, boundary.retry), boundary.env, sink)) {
+                content += chunk;
+            }
+        } catch {
+            // Keep the fallback that was already emitted for this boundary.
+            sink.complete();
+            continue;
+        }
+        yield boundaryPatch(boundary.id, content);
+        sink.complete();
+    }
+}
+
 /** Streams a child value. */
-async function* renderValueChunks(value: unknown, env: ServerEnv | null): AsyncGenerator<string, void, unknown> {
+async function* renderValueChunks(
+    value: unknown,
+    env: ServerEnv | null,
+    sink: BoundarySink | null,
+): AsyncGenerator<string, void, unknown> {
     if (value === null || value === undefined || value === false || value === true) {
         return;
     }
@@ -448,17 +580,18 @@ async function* renderValueChunks(value: unknown, env: ServerEnv | null): AsyncG
         yield* renderValueChunks(
             invoke(env, () => (value as () => unknown)()),
             env,
+            sink,
         );
         return;
     }
     if (Array.isArray(value)) {
         for (const item of value) {
-            yield* renderValueChunks(item, env);
+            yield* renderValueChunks(item, env, sink);
         }
         return;
     }
     if (isVNode(value)) {
-        yield* renderNodeChunks(value, env);
+        yield* renderNodeChunks(value, env, sink);
         return;
     }
     if (typeof value === "string" || typeof value === "number") {
@@ -469,7 +602,11 @@ async function* renderValueChunks(value: unknown, env: ServerEnv | null): AsyncG
 }
 
 /** Streams one node. */
-async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGenerator<string, void, unknown> {
+async function* renderNodeChunks(
+    node: VNode,
+    env: ServerEnv | null,
+    sink: BoundarySink | null,
+): AsyncGenerator<string, void, unknown> {
     switch (node.kind) {
         case "element": {
             const head = invoke(env, () => elementHead(node));
@@ -481,7 +618,7 @@ async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGener
             if (head.innerHTML !== undefined) {
                 yield head.innerHTML;
             } else {
-                yield* renderValueChunks(node.children, env);
+                yield* renderValueChunks(node.children, env, sink);
             }
             yield `</${node.tag}>`;
             return;
@@ -489,11 +626,11 @@ async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGener
         case "component": {
             const props = componentProps(node);
             const output = invoke(env, () => (node.component as (props: Record<string, unknown>) => unknown)(props));
-            yield* renderValueChunks(output, env);
+            yield* renderValueChunks(output, env, sink);
             return;
         }
         case "fragment":
-            yield* renderValueChunks(node.children, env);
+            yield* renderValueChunks(node.children, env, sink);
             return;
         case "each": {
             const items = invoke(env, () =>
@@ -501,12 +638,12 @@ async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGener
             ) as readonly unknown[];
             yield "<!--k:for-->";
             if (items.length === 0) {
-                yield* renderValueChunks(node.fallback, env);
+                yield* renderValueChunks(node.fallback, env, sink);
             } else {
                 for (let index = 0; index < items.length; index += 1) {
                     const item = items[index];
                     const output = invoke(env, () => node.render(item, index));
-                    yield* renderValueChunks(output, env);
+                    yield* renderValueChunks(output, env, sink);
                 }
             }
             yield "<!--/k:for-->";
@@ -515,23 +652,24 @@ async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGener
         case "when": {
             const visible = invoke(env, () => (typeof node.when === "function" ? node.when() : node.when));
             yield "<!--k:when-->";
-            yield* renderValueChunks(visible ? node.children : node.fallback, env);
+            yield* renderValueChunks(visible ? node.children : node.fallback, env, sink);
             yield "<!--/k:when-->";
             return;
         }
         case "portal":
-            yield* renderValueChunks(node.children, env);
+            yield* renderValueChunks(node.children, env, sink);
             return;
         case "provider":
-            yield* renderValueChunks(node.children, { context: node.context, value: node.value, parent: env });
+            yield* renderValueChunks(node.children, { context: node.context, value: node.value, parent: env }, sink);
             return;
         case "boundary": {
             try {
-                yield* renderValueChunks(node.children, env);
+                yield* renderValueChunks(node.children, env, sink);
             } catch (error) {
                 yield* renderValueChunks(
                     node.fallback(error instanceof Error ? error : new Error(String(error)), () => undefined),
                     env,
+                    sink,
                 );
             }
             return;
@@ -539,11 +677,19 @@ async function* renderNodeChunks(node: VNode, env: ServerEnv | null): AsyncGener
         case "pending": {
             if (node.retry === undefined) {
                 throw new Error(
-                    "renderToStream needs createPending(promise, fallback, retry). Use renderToStringAsync for pending nodes without a retry.",
+                    "Streaming needs createPending(promise, fallback, retry). Use renderToStringAsync for pending nodes without a retry.",
                 );
             }
-            await node.promise;
-            yield* renderValueChunks(invoke(env, node.retry), env);
+            if (sink === null) {
+                await node.promise;
+                yield* renderValueChunks(invoke(env, node.retry), env, null);
+                return;
+            }
+
+            const id = sink.open(node.promise, node.retry, env);
+            yield `<!--k:s-${id}-->`;
+            yield* renderValueChunks(node.children, env, sink);
+            yield `<!--k:/s-${id}-->`;
             return;
         }
     }

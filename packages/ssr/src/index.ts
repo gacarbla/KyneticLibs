@@ -10,4 +10,5 @@ export {
     renderToString,
     renderToStringAsync,
     type RenderOptions,
+    type StreamOptions,
 } from "./render-to-string.js";

@@ -22,9 +22,11 @@ Routes:
 1. The Node server reads `dist/client/index.html` once.
 2. For each request it creates a **new** router (`createMemoryStrategy(url)`) and
    a **new** i18n instance, so no state leaks between requests.
-3. `renderToStream` writes the application shell as soon as it is ready. Lazy routes become
-   pending nodes: the stream awaits `import()` and then renders only that subtree.
-4. The template is split at `<!--app-->`; the second half is written when the stream ends.
+3. `renderToStream(..., { outOfOrder: true })` writes the shell and the rest of the page
+   immediately. Lazy routes emit a fallback plus boundary markers; when `import()` finishes,
+   a small inline script swaps the resolved subtree into place.
+4. The template is split at `<!--app-->`; the second half (including the client entry) is
+   written when the stream ends, so hydration always sees the patched DOM.
 5. The browser starts the router with `createPathStrategy()` **before**
    hydrating, so `RouterView` resolves the same route the server used and adopts
    its DOM instead of rebuilding it.

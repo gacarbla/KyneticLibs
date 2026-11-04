@@ -85,7 +85,8 @@ jsx("button", { onClick: () => count.update((n) => n + 1) }, () => `count is ${c
 - `renderToStream(component)` emits HTML chunks. It keeps provider values in an explicit
   environment and enables server mode only around synchronous user code, so no state leaks
   across `await` or between concurrent streams. A pending boundary with a `retry` resolves
-  only its own subtree.
+  only its own subtree. With `outOfOrder: true` the fallback is emitted in place and the
+  resolved content is patched by an inline script, so later content never waits.
 - Dynamic slots own their content. Replacing one disposes the previous components and
   effects, and the slot moves its range start to the new first node, so repeated updates
   never duplicate nodes or leave detached effects running.
@@ -169,6 +170,6 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 | --- | --- |
 | M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components — **delivered** |
 | M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) — **delivered** |
-| M6 | `renderToString`, `renderToStringAsync`, streaming, hydration of elements, context, lists and conditionals — **delivered**; out-of-order streaming next |
+| M6 | `renderToString`, `renderToStringAsync`, in-order and out-of-order streaming, hydration of elements, context, lists and conditionals — **delivered** |
 | M7 | Test renderer, devtools, component library |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |

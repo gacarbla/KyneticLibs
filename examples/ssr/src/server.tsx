@@ -89,7 +89,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     });
     router.start();
 
-    const stream = renderToStream(() => createApp(router, i18n));
+    const stream = renderToStream(() => createApp(router, i18n), { outOfOrder: true });
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.write(templateStart);
 

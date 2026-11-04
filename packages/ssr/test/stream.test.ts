@@ -103,6 +103,97 @@ describe("renderToStream", () => {
         await expect(collect(stream)).rejects.toThrow(/retry/);
     });
 
+    it("patches out-of-order boundaries after the shell", async () => {
+        let resolve!: () => void;
+        const ready = new Promise<void>((done) => {
+            resolve = done;
+        });
+        function View(): Child {
+            return createPending(ready, jsx("p", null, "loading"), () => jsx("p", null, "content"));
+        }
+
+        const stream = renderToStream(() => jsx("div", null, jsx(View, null), jsx("footer", null, "footer")), {
+            outOfOrder: true,
+        });
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+
+        let head = "";
+        while (!head.includes("</footer>")) {
+            const { value, done } = await reader.read();
+            if (done === true) {
+                break;
+            }
+            head += decoder.decode(value, { stream: true });
+        }
+        expect(head).toContain("<!--k:s-0-->");
+        expect(head).toContain("<p>loading</p>");
+        expect(head).not.toContain("k-c-0");
+
+        resolve();
+        let rest = "";
+        for (;;) {
+            const { value, done } = await reader.read();
+            if (done === true) {
+                break;
+            }
+            rest += decoder.decode(value, { stream: true });
+        }
+        rest += decoder.decode();
+
+        expect(rest).toContain('<div id="k-c-0" hidden><p>content</p></div>');
+        expect(rest).toContain("<script>");
+        expect(rest).toContain('d==="k:s-0"');
+    });
+
+    it("patches nested out-of-order boundaries in order", async () => {
+        let resolveOuter!: () => void;
+        let resolveInner!: () => void;
+        const outerReady = new Promise<void>((done) => {
+            resolveOuter = done;
+        });
+        const innerReady = new Promise<void>((done) => {
+            resolveInner = done;
+        });
+
+        function Inner(): Child {
+            return createPending(innerReady, jsx("i", null, "inner-loading"), () => jsx("i", null, "inner"));
+        }
+        function Outer(): Child {
+            return createPending(outerReady, jsx("p", null, "outer-loading"), () =>
+                jsx("section", null, jsx(Inner, null)),
+            );
+        }
+
+        const stream = renderToStream(() => jsx("div", null, jsx(Outer, null), jsx("footer", null, "footer")), {
+            outOfOrder: true,
+        });
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        const readUntil = async (marker: string): Promise<string> => {
+            let text = "";
+            while (!text.includes(marker)) {
+                const { value, done } = await reader.read();
+                if (done === true) {
+                    break;
+                }
+                text += decoder.decode(value, { stream: true });
+            }
+            return text;
+        };
+
+        const head = await readUntil("</footer>");
+        expect(head).not.toContain("k-c-");
+        resolveOuter();
+
+        const outerPatch = await readUntil("k-c-0");
+        expect(outerPatch).toContain("<!--k:s-1-->");
+
+        resolveInner();
+        const innerPatch = await readUntil("k-c-1");
+        expect(innerPatch).toContain('<div id="k-c-1" hidden><i>inner</i></div>');
+    });
+
     it("restores client mode after the stream ends", async () => {
         await collect(renderToStream(() => jsx("p", null, "x")));
 
