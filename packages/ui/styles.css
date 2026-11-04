@@ -439,6 +439,634 @@
     padding-top: 1rem;
 }
 
+.kyn-btn--success {
+    background: var(--kyn-success);
+    color: #ffffff;
+}
+
+.kyn-btn--success:hover:not(:disabled) {
+    filter: brightness(0.92);
+}
+
+.kyn-btn--warning {
+    background: var(--kyn-warning);
+    color: #ffffff;
+}
+
+.kyn-btn--warning:hover:not(:disabled) {
+    filter: brightness(0.92);
+}
+
+.kyn-btn--info {
+    background: var(--kyn-info);
+    color: #ffffff;
+}
+
+.kyn-btn--info:hover:not(:disabled) {
+    filter: brightness(0.92);
+}
+
+.kyn-btn--link {
+    background: transparent;
+    color: var(--kyn-accent);
+    padding-inline: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.kyn-btn--link:hover:not(:disabled) {
+    color: var(--kyn-accent-strong);
+}
+
+.kyn-btn--block {
+    width: 100%;
+}
+
+/* Fields ---------------------------------------------------------------- */
+
+.kyn-field {
+    display: grid;
+    gap: 0.35rem;
+    font-family: var(--kyn-font);
+    color: var(--kyn-text);
+}
+
+.kyn-field__label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--kyn-muted);
+}
+
+.kyn-field__required {
+    margin-inline-start: 0.15rem;
+    color: var(--kyn-danger);
+}
+
+.kyn-field__hint {
+    font-size: 0.78rem;
+    color: var(--kyn-muted);
+}
+
+.kyn-field__error {
+    font-size: 0.78rem;
+    color: var(--kyn-danger);
+}
+
+.kyn-input,
+.kyn-textarea {
+    width: 100%;
+    border: 1px solid var(--kyn-border);
+    border-radius: 8px;
+    background: var(--kyn-surface);
+    color: var(--kyn-text);
+    font: inherit;
+}
+
+.kyn-input:focus-visible,
+.kyn-textarea:focus-visible {
+    outline: 2px solid var(--kyn-accent);
+    outline-offset: 1px;
+}
+
+.kyn-input[aria-invalid="true"],
+.kyn-textarea[aria-invalid="true"] {
+    border-color: var(--kyn-danger);
+}
+
+.kyn-input--sm {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.82rem;
+}
+
+.kyn-input--md {
+    padding: 0.55rem 0.7rem;
+}
+
+.kyn-input--lg {
+    padding: 0.75rem 0.9rem;
+    font-size: 1rem;
+}
+
+.kyn-textarea {
+    min-height: 90px;
+    padding: 0.6rem 0.75rem;
+    resize: vertical;
+}
+
+/* Checkbox and radio ---------------------------------------------------- */
+
+.kyn-check {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 0.5rem;
+    font-family: var(--kyn-font);
+    color: var(--kyn-text);
+    cursor: pointer;
+}
+
+.kyn-check__control {
+    position: relative;
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+}
+
+.kyn-check__input {
+    position: absolute;
+    inset: 0;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.kyn-check__box {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--kyn-border);
+    border-radius: 4px;
+    background: var(--kyn-surface);
+    color: #ffffff;
+    transition:
+        background 120ms ease,
+        border-color 120ms ease;
+}
+
+.kyn-check__box::after {
+    content: "";
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    opacity: 0;
+    transform: rotate(-45deg) translateY(-1px);
+}
+
+.kyn-check__input:checked + .kyn-check__box {
+    background: var(--kyn-accent);
+    border-color: var(--kyn-accent);
+}
+
+.kyn-check__input:checked + .kyn-check__box::after {
+    opacity: 1;
+}
+
+.kyn-check__input:indeterminate + .kyn-check__box {
+    background: var(--kyn-accent);
+    border-color: var(--kyn-accent);
+}
+
+.kyn-check__input:indeterminate + .kyn-check__box::after {
+    content: "";
+    width: 8px;
+    height: 2px;
+    border: 0;
+    border-radius: 1px;
+    background: var(--kyn-accent-contrast);
+    opacity: 1;
+    transform: none;
+}
+
+.kyn-check__input:focus-visible + .kyn-check__box {
+    outline: 2px solid var(--kyn-accent);
+    outline-offset: 2px;
+}
+
+.kyn-check__input:disabled + .kyn-check__box {
+    opacity: 0.5;
+}
+
+.kyn-check__label {
+    font-size: 0.9rem;
+    padding-top: 1px;
+}
+
+.kyn-check > .kyn-field__hint,
+.kyn-check > .kyn-field__error {
+    grid-column: 1 / -1;
+}
+
+.kyn-radio-group {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-family: var(--kyn-font);
+    color: var(--kyn-text);
+}
+
+.kyn-radio-group__options {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.kyn-radio {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.kyn-radio__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    opacity: 0;
+}
+
+.kyn-radio__dot {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--kyn-border);
+    border-radius: 50%;
+    background: var(--kyn-surface);
+}
+
+.kyn-radio__dot::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    transition: background 120ms ease;
+}
+
+.kyn-radio__input:checked + .kyn-radio__dot {
+    border-color: var(--kyn-accent);
+}
+
+.kyn-radio__input:checked + .kyn-radio__dot::after {
+    background: var(--kyn-accent);
+}
+
+.kyn-radio__input:focus-visible + .kyn-radio__dot {
+    outline: 2px solid var(--kyn-accent);
+    outline-offset: 2px;
+}
+
+.kyn-radio__input:disabled + .kyn-radio__dot {
+    opacity: 0.5;
+}
+
+.kyn-radio__label {
+    font-size: 0.9rem;
+}
+
+/* Select ---------------------------------------------------------------- */
+
+.kyn-select {
+    position: relative;
+    display: grid;
+    gap: 0.35rem;
+    font-family: var(--kyn-font);
+    color: var(--kyn-text);
+}
+
+.kyn-select__anchor {
+    position: relative;
+}
+
+.kyn-select__trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.55rem 3rem 0.55rem 0.7rem;
+    border: 1px solid var(--kyn-border);
+    border-radius: 8px;
+    background: var(--kyn-surface);
+    color: var(--kyn-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.kyn-select__trigger:focus-visible {
+    outline: 2px solid var(--kyn-accent);
+    outline-offset: 1px;
+}
+
+.kyn-select__trigger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.kyn-select__value {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.kyn-select__value.is-placeholder {
+    color: var(--kyn-muted);
+}
+
+.kyn-select__chevron {
+    position: absolute;
+    right: 0.7rem;
+    color: var(--kyn-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+
+.kyn-select__clear {
+    position: absolute;
+    right: 1.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--kyn-muted);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.kyn-select__clear:hover {
+    background: var(--kyn-surface-muted);
+    color: var(--kyn-text);
+}
+
+.kyn-select__panel {
+    position: fixed;
+    z-index: 1100;
+    max-height: 280px;
+    padding: 0.35rem;
+    overflow: auto;
+    border: 1px solid var(--kyn-border);
+    border-radius: 10px;
+    background: var(--kyn-surface);
+    color: var(--kyn-text);
+    box-shadow: var(--kyn-shadow);
+}
+
+.kyn-select__search {
+    width: 100%;
+    margin-bottom: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--kyn-border);
+    border-radius: 6px;
+    background: var(--kyn-surface);
+    color: var(--kyn-text);
+    font: inherit;
+}
+
+.kyn-select__search:focus-visible {
+    outline: 2px solid var(--kyn-accent);
+    outline-offset: 1px;
+}
+
+.kyn-select__list {
+    display: grid;
+    gap: 2px;
+    outline: none;
+}
+
+.kyn-select__group-label {
+    padding: 0.4rem 0.55rem 0.2rem;
+    color: var(--kyn-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.kyn-select__option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--kyn-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.kyn-select__option[hidden] {
+    display: none;
+}
+
+.kyn-select__option.is-highlighted {
+    background: var(--kyn-surface-muted);
+}
+
+.kyn-select__option.is-selected {
+    color: var(--kyn-accent);
+}
+
+.kyn-select__option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.kyn-select__option-label {
+    flex: 1;
+}
+
+.kyn-select__option-description {
+    color: var(--kyn-muted);
+    font-size: 0.75rem;
+}
+
+.kyn-select__check {
+    color: var(--kyn-accent);
+    font-size: 0.8rem;
+}
+
+/* Menu ------------------------------------------------------------------ */
+
+.kyn-menu {
+    position: relative;
+    display: inline-flex;
+}
+
+.kyn-menu__trigger {
+    gap: 0.4rem;
+}
+
+.kyn-menu__chevron {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.kyn-menu__panel {
+    position: fixed;
+    z-index: 1100;
+    display: grid;
+    gap: 2px;
+    min-width: 190px;
+    padding: 0.3rem;
+    border: 1px solid var(--kyn-border);
+    border-radius: 10px;
+    background: var(--kyn-surface);
+    color: var(--kyn-text);
+    box-shadow: var(--kyn-shadow);
+}
+
+.kyn-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--kyn-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.kyn-menu__item:hover,
+.kyn-menu__item:focus-visible {
+    background: var(--kyn-surface-muted);
+    outline: none;
+}
+
+.kyn-menu__item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.kyn-menu__item.is-danger {
+    color: var(--kyn-danger);
+}
+
+.kyn-menu__label {
+    flex: 1;
+}
+
+.kyn-menu__shortcut {
+    color: var(--kyn-muted);
+    font-size: 0.75rem;
+}
+
+.kyn-menu__separator {
+    height: 1px;
+    margin: 0.25rem 0;
+    background: var(--kyn-border);
+}
+
+/* Table ----------------------------------------------------------------- */
+
+.kyn-table__wrapper {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid var(--kyn-border);
+    border-radius: var(--kyn-radius);
+    background: var(--kyn-surface);
+}
+
+.kyn-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--kyn-text);
+    font-family: var(--kyn-font);
+    font-size: 0.9rem;
+}
+
+.kyn-table__caption {
+    padding: 0.8rem 1rem 0.2rem;
+    font-weight: 600;
+    text-align: left;
+    caption-side: top;
+}
+
+.kyn-table__th {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--kyn-border);
+    color: var(--kyn-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.kyn-table__td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--kyn-border);
+}
+
+.kyn-table tbody tr:last-child .kyn-table__td {
+    border-bottom: 0;
+}
+
+.kyn-table.is-striped tbody tr:nth-child(even) {
+    background: var(--kyn-surface-muted);
+}
+
+.kyn-table.is-compact .kyn-table__th,
+.kyn-table.is-compact .kyn-table__td {
+    padding: 0.4rem 0.6rem;
+}
+
+.kyn-table__th.is-center,
+.kyn-table__td.is-center {
+    text-align: center;
+}
+
+.kyn-table__th.is-end,
+.kyn-table__td.is-end {
+    text-align: right;
+}
+
+.kyn-table__sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+}
+
+.kyn-table__sort:focus-visible {
+    outline: 2px solid var(--kyn-accent);
+    outline-offset: 2px;
+}
+
+.kyn-table__sort-icon {
+    opacity: 0.6;
+}
+
+.kyn-table tr.is-clickable {
+    cursor: pointer;
+}
+
+.kyn-table tr.is-clickable:hover {
+    background: var(--kyn-surface-muted);
+}
+
+.kyn-table__empty {
+    padding: 1.5rem;
+    color: var(--kyn-muted);
+    text-align: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .kyn-btn,
     .kyn-switch__track,

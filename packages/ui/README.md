@@ -48,13 +48,71 @@ function Settings() {
 
 | Component | Notes |
 | --- | --- |
-| `Button` | Variants `primary`, `secondary`, `ghost`, `danger`; sizes `sm`, `md`, `lg`; `loading` and `disabled` accept accessors. |
+| `Button` | Variants `primary`, `secondary`, `ghost`, `danger`, `success`, `warning`, `info`, `link`; sizes `sm`, `md`, `lg`; `loading`, `disabled`, `block`. |
 | `Badge` | Tones `neutral`, `info`, `success`, `warning`, `danger`. |
 | `Card` | Optional `title` and `actions` header, plus body content. |
 | `Spinner` | `role="status"` with an accessible `label`. |
 | `Switch` | Native checkbox wrapped by its label; `checked` accepts an accessor. |
-| `Dialog` | Modal with Escape, backdrop click, focus in/out and `aria-modal`. |
+| `Input` | Any native `type` (email, password, number, date, search…), `label`, `hint`, `error`, sizes, controlled or uncontrolled. |
+| `Textarea` | Multi-line input with label, hint, error and rows. |
+| `Checkbox` | Native checkbox with `indeterminate` support. |
+| `RadioGroup` | Native radios sharing a `name`, with label and error. |
+| `Select` | Optional search, groups/categories, clear button, keyboard navigation and fixed-position panel. |
+| `Menu` | Dropdown with icons, shortcuts, separators, danger items and arrow-key navigation. |
+| `Table` | Columns, custom cells, striping, compact mode, empty state, row clicks and client-side sorting. |
 | `Tabs` | ARIA tabs with arrow-key navigation; controlled (`value`) or uncontrolled. |
+| `Dialog` | Modal with Escape, backdrop click, focus in/out and `aria-modal`. |
+
+## Selects and menus
+
+```tsx
+<Select
+    label="Country"
+    searchable
+    clearable
+    items={[
+        {
+            label: "Europe",
+            options: [
+                { value: "es", label: "Spain" },
+                { value: "fr", label: "France", description: "French Republic" },
+            ],
+        },
+        {
+            label: "America",
+            options: [{ value: "mx", label: "Mexico" }],
+        },
+    ]}
+    value={country}
+    onChange={country.set}
+/>
+
+<Menu
+    label="Actions"
+    items={[
+        { id: "copy", label: "Copy link", shortcut: "Ctrl C", onSelect: copy },
+        { id: "remove", label: "Remove", danger: true, separatorBefore: true, onSelect: remove },
+    ]}
+/>
+```
+
+## Inputs and tables
+
+```tsx
+<Input label="Email" type="email" value={email} error={invalidEmail} />
+<Textarea label="Message" rows={4} value={message} />
+<Checkbox checked={accepted} onChange={accepted.set} label="Accept the terms" />
+<RadioGroup name="plan" label="Plan" value={plan} onChange={plan.set} options={plans} />
+
+<Table
+    columns={[
+        { key: "name", header: "Name", sortable: true },
+        { key: "role", header: "Role", align: "end" },
+    ]}
+    rows={people}
+    striped
+/>
+```
 
 ## Reactivity
 
@@ -95,8 +153,10 @@ Override them in your own stylesheet to match a brand:
 
 Components use only declarative bindings, so `renderToString`, `renderToStringAsync` and
 `renderToStream` serialize them without a DOM. `Dialog` renders nothing while closed and its
-markup inline while open; client effects (Escape, focus) are skipped on the server and
-resume after hydration.
+markup inline while open; `Select` and `Menu` render their trigger and open their panels on
+the client only. `Textarea` values are serialized as element content, not as an attribute.
+Client effects (Escape, focus, placement) are skipped on the server and resume after
+hydration.
 
 ## Accessibility notes
 

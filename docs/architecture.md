@@ -129,8 +129,9 @@ wins every operation after these changes:
 parity, and creation is slightly ahead. Layout dominates the absolute times (a forced
 `getBoundingClientRect` is roughly half of each measurement), which is why the no-layout
 diagnostic still shows React ahead on creation. The clearest advantage remains bundle size:
-the counter example (runtime + UI kit + compiler output + app) is **~8.6 kB gzip**, against
-~45 kB for React + ReactDOM. Devtools is opt-in and code-split into a separate ~1.6 kB chunk.
+the counter example (runtime + full UI kit + compiler output + app) is **~12.1 kB gzip**,
+against ~45 kB for React + ReactDOM. Devtools is opt-in and code-split into a separate
+~1.6 kB chunk.
 
 Next performance work: batch DOM writes inside a list update, compile static subtrees into
 cloneable templates, and measure with the official `js-framework-benchmark` harness.

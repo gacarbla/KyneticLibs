@@ -204,6 +204,10 @@ function renderNode(node: VNode, tasks: Promise<unknown>[] | null): string {
 
 /** Renders one element and its children. */
 function renderElement(node: Extract<VNode, { kind: "element" }>, tasks: Promise<unknown>[] | null): string {
+    if (node.tag === "textarea") {
+        const { attributes } = elementHead(node, "value");
+        return `<textarea${attributes}>${resolvedText(node.props["value"])}</textarea>`;
+    }
     const { attributes, innerHTML } = elementHead(node);
     const tag = node.tag;
     if (VOID_ELEMENTS.has(tag)) {
@@ -213,8 +217,17 @@ function renderElement(node: Extract<VNode, { kind: "element" }>, tasks: Promise
     return `<${tag}${attributes}>${content}</${tag}>`;
 }
 
+/** Resolves a thunk attribute and escapes it for text content. */
+function resolvedText(value: unknown): string {
+    const resolved = typeof value === "function" ? (value as () => unknown)() : value;
+    return resolved === null || resolved === undefined ? "" : escapeText(String(resolved));
+}
+
 /** Serializes the attributes of an element and extracts `innerHTML`. */
-function elementHead(node: Extract<VNode, { kind: "element" }>): {
+function elementHead(
+    node: Extract<VNode, { kind: "element" }>,
+    skip?: string,
+): {
     attributes: string;
     innerHTML: string | undefined;
 } {
@@ -222,6 +235,9 @@ function elementHead(node: Extract<VNode, { kind: "element" }>): {
     let innerHTML: string | undefined;
 
     for (const [key, value] of Object.entries(node.props)) {
+        if (key === skip) {
+            continue;
+        }
         if (key === "innerHTML" || key === "html") {
             const resolved = typeof value === "function" ? (value as () => unknown)() : value;
             innerHTML = resolved === null || resolved === undefined ? "" : String(resolved);
@@ -609,6 +625,12 @@ async function* renderNodeChunks(
 ): AsyncGenerator<string, void, unknown> {
     switch (node.kind) {
         case "element": {
+            if (node.tag === "textarea") {
+                const head = invoke(env, () => elementHead(node, "value"));
+                const content = invoke(env, () => resolvedText(node.props["value"]));
+                yield `<textarea${head.attributes}>${content}</textarea>`;
+                return;
+            }
             const head = invoke(env, () => elementHead(node));
             if (VOID_ELEMENTS.has(node.tag)) {
                 yield `<${node.tag}${head.attributes}>`;

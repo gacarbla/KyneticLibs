@@ -304,13 +304,13 @@ function createElement(tag: string, props: Props | null, children: Child[]): Ele
     }
 
     if (Object.hasOwn(attrs, "children") && children.length === 0) {
-        appendChild(element, attrs["children"] as Child);
+        appendChild(element, attrs["children"] as Child, dynamic);
     }
     for (const child of children) {
         if (typeof child === "function") {
             dynamic.push(createDynamicChild(element, child));
         } else {
-            appendChild(element, child);
+            appendChild(element, child, dynamic);
         }
     }
 
@@ -434,17 +434,21 @@ function toKebabCase(property: string): string {
 }
 
 /** Appends a child to a real node. */
-function appendChild(parent: Node, child: Child): void {
+function appendChild(parent: Node, child: Child, dynamic?: Array<() => void>): void {
     if (child === null || child === undefined || child === false || child === true) {
         return;
     }
     if (typeof child === "function") {
-        createDynamicChild(parent, child)();
+        if (dynamic !== undefined) {
+            dynamic.push(createDynamicChild(parent, child));
+        } else {
+            createDynamicChild(parent, child)();
+        }
         return;
     }
     if (Array.isArray(child)) {
         for (const item of child) {
-            appendChild(parent, item);
+            appendChild(parent, item, dynamic);
         }
         return;
     }

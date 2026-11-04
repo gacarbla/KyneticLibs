@@ -88,6 +88,23 @@ main {
     margin: 1.25rem 0;
 }
 
+.kit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+    margin: 1.25rem 0;
+}
+
+.kit-table {
+    margin-top: 1.25rem;
+}
+
+@media (max-width: 620px) {
+    .kit-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .kit-spinner {
     display: flex;
     align-items: center;

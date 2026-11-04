@@ -2,7 +2,7 @@ import type { Child } from "@kyneticweb/dom";
 import { cx, read } from "./classes.js";
 
 /** Visual variants of {@link Button}. */
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success" | "warning" | "info" | "link";
 
 /** Sizes of {@link Button}. */
 export type ButtonSize = "sm" | "md" | "lg";
@@ -18,6 +18,8 @@ export interface ButtonProps {
     readonly loading?: boolean | (() => boolean);
     readonly onClick?: (event: MouseEvent) => void;
     readonly class?: string;
+    /** Stretches to the container width. */
+    readonly block?: boolean;
     readonly children?: Child;
 }
 
@@ -37,7 +39,13 @@ export function Button(props: ButtonProps): Child {
     return (
         <button
             type={props.type ?? "button"}
-            class={cx("kyn-btn", `kyn-btn--${variant}`, `kyn-btn--${size}`, props.class)}
+            class={cx(
+                "kyn-btn",
+                `kyn-btn--${variant}`,
+                `kyn-btn--${size}`,
+                props.block === true && "kyn-btn--block",
+                props.class,
+            )}
             disabled={blocked}
             aria-busy={(): string | undefined => (read(props.loading) === true ? "true" : undefined)}
             onClick={props.onClick}

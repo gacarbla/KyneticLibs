@@ -88,6 +88,8 @@ export interface BaseProps {
     placeholder?: string;
     /** Input type. */
     type?: string;
+    /** Virtual keyboard hint. */
+    inputMode?: string;
     /** Link target. */
     href?: string;
     /** Link target window. */

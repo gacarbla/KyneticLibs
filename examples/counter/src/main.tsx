@@ -9,7 +9,22 @@ import {
     Show,
     useContext,
 } from "@kyneticweb/dom";
-import { Badge, Button, Card, Dialog, Spinner, Switch, Tabs } from "@kyneticweb/ui";
+import {
+    Badge,
+    Button,
+    Card,
+    Checkbox,
+    Dialog,
+    Input,
+    Menu,
+    RadioGroup,
+    Select,
+    Spinner,
+    Switch,
+    Table,
+    Tabs,
+    Textarea,
+} from "@kyneticweb/ui";
 import "./styles.css";
 import "@kyneticweb/ui/styles.css";
 
@@ -123,11 +138,47 @@ function Brand() {
     return <span class="badge">{brand}</span>;
 }
 
-/** Demonstrates the component kit: buttons, card, switch, tabs and dialog. */
+/** Demonstrates the component kit: buttons, inputs, select, menu, table, tabs and dialog. */
 function Kit() {
     const notifications = createSignal(true);
     const running = createSignal(false);
     const confirming = createSignal(false);
+    const accepted = createSignal(false);
+    const email = createSignal("");
+    const country = createSignal("es");
+    const plan = createSignal("free");
+    const bio = createSignal("");
+
+    const countries = [
+        {
+            label: "Europe",
+            options: [
+                { value: "es", label: "Spain" },
+                { value: "fr", label: "France", description: "French Republic" },
+                { value: "gl", label: "Galicia" },
+            ],
+        },
+        {
+            label: "America",
+            options: [
+                { value: "mx", label: "Mexico" },
+                { value: "ar", label: "Argentina" },
+            ],
+        },
+    ];
+
+    const people = [
+        { name: "Ana", role: "Design" },
+        { name: "Luis", role: "Engineering" },
+        { name: "Marta", role: "Product" },
+    ];
+    const columns = [
+        { key: "name", header: "Name", sortable: true },
+        { key: "role", header: "Role" },
+    ] as const;
+
+    const emailError = (): string | undefined =>
+        email().length === 0 || email().includes("@") ? undefined : "Write a valid email";
 
     const runTask = (): void => {
         running.set(true);
@@ -140,9 +191,12 @@ function Kit() {
                 <Button variant="primary">Primary</Button>
                 <Button>Secondary</Button>
                 <Button variant="ghost">Ghost</Button>
+                <Button variant="success">Success</Button>
+                <Button variant="warning">Warning</Button>
                 <Button variant="danger" onClick={() => confirming.set(true)}>
                     Delete…
                 </Button>
+                <Button variant="link">Link</Button>
                 <Button loading={running} onClick={runTask}>
                     Run task
                 </Button>
@@ -151,6 +205,60 @@ function Kit() {
             <div class="row spread kit-row">
                 <Switch checked={notifications} onChange={notifications.set} label="Notifications" />
                 <Badge tone="success">{() => (notifications() ? "enabled" : "disabled")}</Badge>
+            </div>
+
+            <div class="kit-grid">
+                <Input
+                    label="Email"
+                    type="email"
+                    value={email}
+                    error={emailError}
+                    placeholder="you@example.com"
+                    onInput={(event) => email.set((event.target as HTMLInputElement).value)}
+                />
+                <Select label="Country" items={countries} value={country} onChange={country.set} searchable clearable />
+            </div>
+
+            <Textarea
+                label="Message"
+                rows={3}
+                value={bio}
+                placeholder="Tell us something…"
+                onInput={(event) => bio.set((event.target as HTMLTextAreaElement).value)}
+            />
+
+            <div class="row wrap kit-row">
+                <Checkbox checked={accepted} onChange={accepted.set} label="Accept the terms" />
+                <Menu
+                    label="Actions"
+                    items={[
+                        { id: "copy", label: "Copy link", shortcut: "Ctrl C", onSelect: () => undefined },
+                        { id: "archive", label: "Archive", onSelect: () => undefined },
+                        {
+                            id: "remove",
+                            label: "Remove",
+                            danger: true,
+                            separatorBefore: true,
+                            onSelect: () => confirming.set(true),
+                        },
+                    ]}
+                />
+            </div>
+
+            <RadioGroup
+                name="plan"
+                label="Plan"
+                value={plan}
+                onChange={plan.set}
+                options={[
+                    { value: "free", label: "Free" },
+                    { value: "pro", label: "Pro" },
+                    { value: "team", label: "Team" },
+                ]}
+            />
+
+            <div class="kit-table">
+                <Table columns={columns} rows={people} striped compact />
             </div>
 
             <Tabs
