@@ -12,7 +12,8 @@
         "@kyneticweb/compiler": "*",
         "@kyneticweb/devtools": "*",
         "@kyneticweb/dom": "*",
-        "@kyneticweb/reactive": "*"
+        "@kyneticweb/reactive": "*",
+        "@kyneticweb/ui": "*"
     },
     "devDependencies": {
         "typescript": "^5.9.3",

@@ -29,6 +29,9 @@
             "path": "packages/devtools"
         },
         {
+            "path": "packages/ui"
+        },
+        {
             "path": "packages/container"
         },
         {

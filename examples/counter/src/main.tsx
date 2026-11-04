@@ -9,7 +9,9 @@ import {
     Show,
     useContext,
 } from "@kyneticweb/dom";
+import { Badge, Button, Card, Dialog, Spinner, Switch, Tabs } from "@kyneticweb/ui";
 import "./styles.css";
+import "@kyneticweb/ui/styles.css";
 
 type Theme = "light" | "dark";
 
@@ -121,6 +123,74 @@ function Brand() {
     return <span class="badge">{brand}</span>;
 }
 
+/** Demonstrates the component kit: buttons, card, switch, tabs and dialog. */
+function Kit() {
+    const notifications = createSignal(true);
+    const running = createSignal(false);
+    const confirming = createSignal(false);
+
+    const runTask = (): void => {
+        running.set(true);
+        setTimeout(() => running.set(false), 900);
+    };
+
+    return (
+        <Card title="Component kit" actions={<Badge tone="info">@kyneticweb/ui</Badge>}>
+            <div class="row wrap">
+                <Button variant="primary">Primary</Button>
+                <Button>Secondary</Button>
+                <Button variant="ghost">Ghost</Button>
+                <Button variant="danger" onClick={() => confirming.set(true)}>
+                    Delete…
+                </Button>
+                <Button loading={running} onClick={runTask}>
+                    Run task
+                </Button>
+            </div>
+
+            <div class="row spread kit-row">
+                <Switch checked={notifications} onChange={notifications.set} label="Notifications" />
+                <Badge tone="success">{() => (notifications() ? "enabled" : "disabled")}</Badge>
+            </div>
+
+            <Tabs
+                items={[
+                    {
+                        id: "signals",
+                        label: "Signals",
+                        content: <p class="muted">Fine-grained updates without re-renders.</p>,
+                    },
+                    {
+                        id: "ssr",
+                        label: "SSR",
+                        content: <p class="muted">Streaming and hydration included.</p>,
+                    },
+                ]}
+            />
+
+            <p class="muted kit-spinner">
+                <Spinner size="sm" /> Loading indicator
+            </p>
+
+            <Dialog
+                open={confirming}
+                title="Delete item"
+                onClose={() => confirming.set(false)}
+                footer={
+                    <>
+                        <Button onClick={() => confirming.set(false)}>Cancel</Button>
+                        <Button variant="danger" onClick={() => confirming.set(false)}>
+                            Delete
+                        </Button>
+                    </>
+                }
+            >
+                This is a demo; nothing will be deleted.
+            </Dialog>
+        </Card>
+    );
+}
+
 /** Root component: theme signal, effect and layout. */
 function App() {
     const theme = createSignal<Theme>("light");
@@ -141,6 +211,7 @@ function App() {
             <main>
                 <Counter />
                 <Todos />
+                <Kit />
                 <section class="card">
                     <h2>Context</h2>
                     <p class="muted">

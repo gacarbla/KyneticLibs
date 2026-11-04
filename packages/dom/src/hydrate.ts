@@ -3,6 +3,7 @@ import {
     createOwner,
     createRoot,
     disposeOwner,
+    getOwner,
     onCleanup,
     runWithOwner,
     type Dispose,
@@ -10,6 +11,7 @@ import {
 } from "@kyneticweb/reactive";
 import { isVNode, type VNode } from "./vnode.js";
 import { addEvent, render, setRenderMode, setStaticProp, toNodes } from "./dom.js";
+import { linkOwner } from "./devtools.js";
 import { adoptForRow, forKey, startForList, type ForItem, type ForKey, type ForProps } from "./components.js";
 import type { Child, Props } from "./types.js";
 
@@ -97,6 +99,7 @@ function hydrateText(expected: string, cursor: Node | null): Node | null {
 function hydrateDynamic(read: () => unknown, parent: Node, cursor: Node | null): Node | null {
     const first = cursor;
     let owner = createOwner();
+    linkOwner(owner, getOwner());
     const after = runWithOwner(owner, () => hydrateValue(read(), parent, cursor));
     const anchor = document.createComment("kynetic-hydrated");
     parent.insertBefore(anchor, after);
@@ -115,7 +118,9 @@ function hydrateDynamic(read: () => unknown, parent: Node, cursor: Node | null):
 
         disposeOwner(owner);
         removeBetween(parent, start, anchor);
+        const parentOwner = getOwner();
         owner = createOwner();
+        linkOwner(owner, parentOwner);
         const nodes = runWithOwner(owner, () => toNodes(read() as Child));
         for (const node of nodes) {
             parent.insertBefore(node, anchor);
@@ -225,6 +230,7 @@ function hydrateWhen(node: Extract<VNode, { kind: "when" }>, parent: Node, curso
     const visible = typeof node.when === "function" ? node.when() : node.when;
     let rangeStart: Node | null = open.nextSibling;
     let owner = createOwner();
+    linkOwner(owner, getOwner());
     runWithOwner(owner, () => hydrateValue(visible ? node.children : node.fallback, parent, rangeStart));
 
     let initial = true;
@@ -236,7 +242,9 @@ function hydrateWhen(node: Extract<VNode, { kind: "when" }>, parent: Node, curso
         }
 
         disposeOwner(owner);
+        const parentOwner = getOwner();
         owner = createOwner();
+        linkOwner(owner, parentOwner);
         removeBetween(parent, rangeStart, close);
         const branch = (next ? node.children : node.fallback) as Child;
         const nodes = runWithOwner(owner, () => toNodes(branch));

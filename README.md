@@ -27,6 +27,7 @@ without extra setup.
 | [`@kyneticweb/ssr`](./packages/ssr) | Server-side rendering without a DOM. |
 | [`@kyneticweb/testing`](./packages/testing) | Mount, query, interact and wait in tests. |
 | [`@kyneticweb/devtools`](./packages/devtools) | Component tree and reactive counters in a dev panel. |
+| [`@kyneticweb/ui`](./packages/ui) | Accessible, themeable components (button, card, tabs, dialog…). |
 | [`@kyneticweb/utils`](./packages/utils) | Date formatting, text wrapping and identifier helpers. |
 | [`@kyneticweb/versions`](./packages/versions) | Schema driven version parsing, validation and comparison. |
 

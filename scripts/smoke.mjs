@@ -29,6 +29,7 @@ const PACKAGE_NAMES = [
     "ssr",
     "testing",
     "devtools",
+    "ui",
     "container",
     "counter",
     "versions",

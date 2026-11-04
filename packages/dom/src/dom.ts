@@ -10,7 +10,7 @@ import {
     type Owner,
 } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
-import { isDevtoolsEnabled, registerComponent, unregisterComponent } from "./devtools.js";
+import { isDevtoolsEnabled, linkOwner, registerComponent, unregisterComponent } from "./devtools.js";
 import { isVNode, type VNode } from "./vnode.js";
 import type { Child, Component, Props } from "./types.js";
 
@@ -492,7 +492,9 @@ function createDynamicChild(parent: Node, read: () => Child): () => void {
             if (owner !== null) {
                 disposeOwner(owner);
             }
+            const parentOwner = getOwner();
             contentOwner = createOwner();
+            linkOwner(contentOwner, parentOwner);
             owner = contentOwner;
         }
 
@@ -556,7 +558,9 @@ function renderDynamic(read: () => Child): Node {
     createEffect(() => {
         // Replace the previous content's owner before creating the new tree.
         disposeOwner(owner);
+        const parentOwner = getOwner();
         owner = createOwner();
+        linkOwner(owner, parentOwner);
         // Tracked: the slot must stay subscribed to the expression that
         // produced this content, while the content belongs to its own owner.
         const next = runWithOwnerTracked(owner, () => toNodes(read()));

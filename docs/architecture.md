@@ -27,8 +27,9 @@ experience, not a clone.
     ├── @kyneticweb/ssr        server rendering and streaming without a DOM
     ├── @kyneticweb/testing    mount, query, interact and wait in tests
     ├── @kyneticweb/devtools   component tree and reactive counters panel
+    ├── @kyneticweb/ui         accessible components and theme tokens
     ├── @kyneticweb/compiler   Babel + Vite plugin (dynamic expression thunks)
-    └── (future) ui
+    └── (future) more components and layouts
 ```
 
 ## Compiler contract
@@ -128,8 +129,8 @@ wins every operation after these changes:
 parity, and creation is slightly ahead. Layout dominates the absolute times (a forced
 `getBoundingClientRect` is roughly half of each measurement), which is why the no-layout
 diagnostic still shows React ahead on creation. The clearest advantage remains bundle size:
-the counter example (runtime + compiler output + app) is **~7.1 kB gzip**, against ~45 kB for
-React + ReactDOM. Devtools is opt-in and code-split into a separate ~1.6 kB chunk.
+the counter example (runtime + UI kit + compiler output + app) is **~8.6 kB gzip**, against
+~45 kB for React + ReactDOM. Devtools is opt-in and code-split into a separate ~1.6 kB chunk.
 
 Next performance work: batch DOM writes inside a list update, compile static subtrees into
 cloneable templates, and measure with the official `js-framework-benchmark` harness.
@@ -175,5 +176,5 @@ cloneable templates, and measure with the official `js-framework-benchmark` harn
 | M4 | `For`/`Show` with per-item owners, portals, error boundaries, lazy components — **delivered** |
 | M5 | Router, i18n, forms (reusing `@kyneticweb/parser`) — **delivered** |
 | M6 | `renderToString`, `renderToStringAsync`, in-order and out-of-order streaming, hydration of elements, context, lists and conditionals — **delivered** |
-| M7 | `@kyneticweb/testing` and `@kyneticweb/devtools` — **delivered**; component library next |
+| M7 | `@kyneticweb/testing`, `@kyneticweb/devtools` and `@kyneticweb/ui` — **delivered** |
 | M8 | Benchmarks against React/Solid/Svelte and 1.0 |

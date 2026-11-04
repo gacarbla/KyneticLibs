@@ -8,6 +8,8 @@
         "tsBuildInfoFile": "./.typecheck/.tsbuildinfo",
         "types": ["node"],
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
+        "jsxImportSource": "@kyneticweb/dom",
         "baseUrl": ".",
         "paths": {
             "@kyneticweb/console": ["packages/console/src/index.ts"],
@@ -19,8 +21,10 @@
             "@kyneticweb/parser": ["packages/parser/src/index.ts"],
             "@kyneticweb/reactive": ["packages/reactive/src/index.ts"],
             "@kyneticweb/router": ["packages/router/src/index.ts"],
+            "@kyneticweb/ssr": ["packages/ssr/src/index.ts"],
             "@kyneticweb/testing": ["packages/testing/src/index.ts"],
             "@kyneticweb/devtools": ["packages/devtools/src/index.ts"],
+            "@kyneticweb/ui": ["packages/ui/src/index.ts"],
             "@kyneticweb/utils": ["packages/utils/src/index.ts"],
             "@kyneticweb/versions": ["packages/versions/src/index.ts"]
         }

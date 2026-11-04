@@ -3,12 +3,14 @@ import {
     createOwner,
     createSignal,
     disposeOwner,
+    getOwner,
     onCleanup,
     runWithOwner,
     type Owner,
     type Signal,
 } from "@kyneticweb/reactive";
 import { resolveChild } from "./child.js";
+import { linkOwner } from "./devtools.js";
 import { isServerMode, toNodes } from "./dom.js";
 import type { Child } from "./types.js";
 
@@ -175,6 +177,7 @@ export function startForList<T>(host: Node, anchor: Node, props: ForProps<T>, se
             }
 
             const owner = createOwner();
+            linkOwner(owner, getOwner());
             const nodes = runWithOwner(owner, () => toNodes(renderItem(rendered, index)));
             next.set(key, { item: rendered, current: item, update, nodes, owner });
         }
@@ -261,6 +264,7 @@ export function adoptForRow<T>(
     }
 
     const owner = createOwner();
+    linkOwner(owner, getOwner());
     return {
         record: { item: rendered, current: item, update, nodes: [], owner },
         output: runWithOwner(owner, () => render(rendered, index)),
@@ -383,11 +387,13 @@ export function Show(props: ShowProps): Node {
         const visible = typeof props.when === "function" ? props.when() : props.when;
         clear();
 
+        const parent = getOwner();
         owner = createOwner();
+        linkOwner(owner, parent);
         const next = runWithOwner(owner, () => toNodes(visible ? props.children : props.fallback));
-        const parent = anchor.parentNode ?? fragment;
+        const parentNode = anchor.parentNode ?? fragment;
         for (const node of next) {
-            parent.insertBefore(node, anchor);
+            parentNode.insertBefore(node, anchor);
         }
         current = next;
     });
@@ -485,7 +491,9 @@ export function ErrorBoundary(props: ErrorBoundaryProps): Node {
     };
 
     const mount = (child: Child): void => {
+        const parentOwner = getOwner();
         owner = createOwner();
+        linkOwner(owner, parentOwner);
         const nodes = runWithOwner(owner, () => toNodes(resolveChild(child)));
         const parent = anchor.parentNode ?? fragment;
         for (const node of nodes) {

@@ -76,6 +76,25 @@ main {
     gap: 0.75rem;
 }
 
+.row.wrap {
+    flex-wrap: wrap;
+}
+
+.row.spread {
+    justify-content: space-between;
+}
+
+.kit-row {
+    margin: 1.25rem 0;
+}
+
+.kit-spinner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
 button {
     border: 1px solid var(--border);
     background: var(--surface);

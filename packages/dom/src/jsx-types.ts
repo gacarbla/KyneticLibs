@@ -39,24 +39,27 @@ export type EventProps = {
     [Key in keyof DOMEventMap]?: (event: DOMEventMap[Key]) => void;
 };
 
+/** A value, or an accessor that keeps the attribute reactive. */
+export type Reactive<T> = T | (() => T);
+
 /** Props shared by every intrinsic element. */
 export interface BaseProps {
     /** Class name, list or `{ name: enabled }` map. */
-    class?: ClassValue;
+    class?: Reactive<ClassValue>;
     /** Alias of `class`. */
-    className?: ClassValue;
+    className?: Reactive<ClassValue>;
     /** CSS text or property map. */
-    style?: StyleValue;
+    style?: Reactive<StyleValue>;
     /** Element identifier. */
-    id?: string;
+    id?: Reactive<string>;
     /** Tooltip text. */
-    title?: string;
+    title?: Reactive<string>;
     /** ARIA role. */
     role?: string;
     /** Hides the element. */
-    hidden?: boolean;
+    hidden?: Reactive<boolean>;
     /** Tab order. */
-    tabIndex?: number;
+    tabIndex?: Reactive<number>;
     /** Element reference. */
     ref?: (element: Element | null) => void;
     /** List key (consumed by keyed collections). */
@@ -68,19 +71,19 @@ export interface BaseProps {
     /** Text content. */
     textContent?: string;
     /** Form value. */
-    value?: string | number;
+    value?: Reactive<string | number>;
     /** Checkbox or radio state. */
-    checked?: boolean;
+    checked?: Reactive<boolean>;
     /** Option selection. */
-    selected?: boolean;
+    selected?: Reactive<boolean>;
     /** Disabled state. */
-    disabled?: boolean;
+    disabled?: Reactive<boolean>;
     /** Multiple selection. */
-    multiple?: boolean;
+    multiple?: Reactive<boolean>;
     /** Read-only state. */
-    readOnly?: boolean;
+    readOnly?: Reactive<boolean>;
     /** Required state. */
-    required?: boolean;
+    required?: Reactive<boolean>;
     /** Placeholder text. */
     placeholder?: string;
     /** Input type. */
