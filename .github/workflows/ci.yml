@@ -30,8 +30,16 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            - name: Reject tracked build artifacts
+              run: |
+                  if git ls-files -- '*.tsbuildinfo' 'packages/*/dist/*' | grep -q .; then
+                      echo "::error::Build artifacts are tracked; remove them from git."
+                      git ls-files -- '*.tsbuildinfo' 'packages/*/dist/*'
+                      exit 1
+                  fi
+
             - name: Build
-              run: npm run build
+              run: npm run build -- --force
 
             - name: Typecheck
               run: npm run typecheck
