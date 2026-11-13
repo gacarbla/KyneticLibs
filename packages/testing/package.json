@@ -1,6 +1,6 @@
 {
     "name": "@kyneticweb/testing",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "DOM testing helpers for the Kynetic runtime: queries, events and reactive waiting.",
     "type": "module",
     "main": "dist/index.js",
@@ -47,7 +47,7 @@
         "clean": "tsc -b --clean"
     },
     "dependencies": {
-        "@kyneticweb/dom": "^0.1.0"
+        "@kyneticweb/dom": "^0.2.0"
     },
     "devDependencies": {
         "@types/node": "^24.10.0"

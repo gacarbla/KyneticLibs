@@ -1,6 +1,6 @@
 {
     "name": "@kyneticweb/compiler",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "JSX compiler for the Kynetic DOM runtime: wraps dynamic expressions in fine-grained thunks.",
     "type": "module",
     "exports": {
