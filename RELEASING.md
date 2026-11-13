@@ -87,8 +87,10 @@ GitHub → **Actions** → **Release** → **Run workflow**:
 - `publish: true` runs `changeset publish`, pushes the package tags and publishes every
   version that is not on the registry yet.
 
-The workflow uses `NPM_TOKEN` and needs the `release` environment approval when that
-environment is protected. It runs on Node 24 with npm 12.
+The workflow uses `NPM_TOKEN` and runs in the **release** environment. Add the token under
+Settings → Secrets and variables → Actions, and add protection rules to the environment
+(required reviewers) if publishing needs an approval gate. The workflow runs on Node 24 with
+npm 12.
 
 ## 7. Verify
 
