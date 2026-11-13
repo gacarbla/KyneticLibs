@@ -1,6 +1,6 @@
 {
     "name": "@kyneticweb/router",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Typed router for the Kynetic DOM runtime: path, hash and memory strategies.",
     "type": "module",
     "main": "dist/index.js",
@@ -47,8 +47,8 @@
         "clean": "tsc -b --clean"
     },
     "dependencies": {
-        "@kyneticweb/dom": "^0.1.0",
-        "@kyneticweb/reactive": "^0.1.0"
+        "@kyneticweb/dom": "^0.2.0",
+        "@kyneticweb/reactive": "^0.2.0"
     },
     "devDependencies": {
         "@types/node": "^24.10.0"

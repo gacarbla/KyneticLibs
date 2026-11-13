@@ -35,7 +35,7 @@ CI / Node 20 · Node 22 · Node 24
 ```bash
 git switch main
 git pull --ff-only
-git switch -c release/0.1.0
+git switch -c release/0.2.0
 ```
 
 ## 3. Apply the changesets
@@ -52,18 +52,18 @@ Review the diff:
 - No unexpected package is bumped.
 
 Update `docs/releases/vX.Y.Z.md` with the release notes. If the release is a first publication
-at the current version (for example the 0.1.0 framework packages), `changeset version` may
+at the current version (for example the 0.2.0 framework packages), `changeset version` may
 produce no version diff; the release notes and the publish step are still required.
 
 ## 4. Open the release PR
 
 ```bash
 git add -A
-git commit -m "release: prepare 0.1.0"
-git push -u origin release/0.1.0
+git commit -m "release: prepare 0.2.0"
+git push -u origin release/0.2.0
 ```
 
-Open a PR against `main` titled `release: 0.1.0`. CI must pass; squash-merge it.
+Open a PR against `main` titled `release: 0.2.0`. CI must pass; squash-merge it.
 
 ## 5. Tag the release
 
@@ -72,8 +72,8 @@ Tag the squash commit on `main`:
 ```bash
 git switch main
 git pull --ff-only
-git tag -a v0.1.0 -m "Kynetic 0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "Kynetic 0.2.0"
+git push origin v0.2.0
 ```
 
 The umbrella tag records the release. Changesets also creates per-package tags
@@ -106,8 +106,8 @@ nothing unless a build artifact is part of the release.
 The framework packages are at `0.1.0` and have never been published. The first release
 publishes those versions as-is:
 
-1. Release PR with `docs/releases/v0.1.0.md`.
-2. Tag `v0.1.0`.
+1. Release PR with `docs/releases/v0.2.0.md`.
+2. Tag `v0.2.0`.
 3. Release workflow with `publish: true`.
 4. Verify every package and create the GitHub Release.
 
