@@ -124,6 +124,11 @@ npm run format   # Prettier
 npm run smoke    # verify every package resolves as ESM and packs cleanly
 ```
 
+Contributions follow a trunk-based flow: short-lived branches, Conventional Commits, a pull
+request per change and a green CI matrix (Node 20, 22 and 24). See
+[`CONTRIBUTING.md`](./CONTRIBUTING.md) for the branch/commit/PR rules and
+[`RELEASING.md`](./RELEASING.md) for the Changesets release process.
+
 ### Repository layout
 
 ```

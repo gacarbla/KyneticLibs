@@ -1,0 +1,48 @@
+name: Feature request
+
+description: Propose a new capability, component or package.
+title: "feat: "
+labels: ["enhancement"]
+body:
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem
+          description: What are you trying to do that the current API does not cover?
+      validations:
+          required: true
+
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposal
+          description: The API or behaviour you would like.
+      validations:
+          required: true
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives
+          description: Workarounds or other designs you considered.
+      validations:
+          required: false
+
+    - type: dropdown
+      id: area
+      attributes:
+          label: Area
+          options:
+              - Reactivity
+              - DOM runtime
+              - Compiler
+              - Router
+              - i18n
+              - Forms
+              - SSR / streaming
+              - Testing
+              - Devtools
+              - UI components
+              - Documentation / tooling
+      validations:
+          required: true

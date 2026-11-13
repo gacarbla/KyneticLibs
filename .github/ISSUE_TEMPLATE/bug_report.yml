@@ -1,0 +1,73 @@
+name: Bug report
+
+description: Report a defect in a package or example.
+title: "fix: "
+labels: ["bug"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for the report. Please include a minimal reproduction when possible.
+
+    - type: dropdown
+      id: package
+      attributes:
+          label: Package
+          options:
+              - "@kyneticweb/reactive"
+              - "@kyneticweb/dom"
+              - "@kyneticweb/router"
+              - "@kyneticweb/i18n"
+              - "@kyneticweb/forms"
+              - "@kyneticweb/ssr"
+              - "@kyneticweb/compiler"
+              - "@kyneticweb/testing"
+              - "@kyneticweb/devtools"
+              - "@kyneticweb/ui"
+              - Other package
+              - Examples / tooling
+      validations:
+          required: true
+
+    - type: input
+      id: version
+      attributes:
+          label: Version
+          description: Package version, or the commit SHA when running from source.
+          placeholder: "0.1.0"
+      validations:
+          required: true
+
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: What happened, and what did you expect instead?
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduction
+      attributes:
+          label: Reproduction
+          description: Minimal code, repository link or exact steps.
+          render: shell
+      validations:
+          required: true
+
+    - type: textarea
+      id: environment
+      attributes:
+          label: Environment
+          description: Node version, browser, operating system, bundler.
+          placeholder: Node 24.11.1, Chrome 142, Windows 11, Vite 8
+      validations:
+          required: false
+
+    - type: textarea
+      id: logs
+      attributes:
+          label: Logs or stack trace
+          render: shell
+      validations:
+          required: false
