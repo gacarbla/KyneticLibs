@@ -1,0 +1,71 @@
+name: Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            publish:
+                description: Publish unpublished package versions to npm
+                type: boolean
+                required: true
+                default: false
+
+permissions:
+    contents: write
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    release:
+        name: Release
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Use Node.js 24
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+                  registry-url: https://registry.npmjs.org
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build
+              run: npm run build -- --force
+
+            - name: Test
+              run: npm test
+
+            - name: Upgrade npm for staged publishing
+              if: ${{ inputs.publish }}
+              run: npm install --global npm@12
+
+            - name: Publish packages
+              if: ${{ inputs.publish }}
+              run: |
+                  npx changeset publish
+                  git push --follow-tags
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Summary
+              run: |
+                  {
+                      echo "### Release"
+                      echo ""
+                      echo "- Publish requested: \`${{ inputs.publish }}\`"
+                      echo "- Commit: \`${{ github.sha }}\`"
+                      echo ""
+                      if [ "${{ inputs.publish }}" = "true" ]; then
+                          echo "Changesets published the unpublished versions and pushed the package tags."
+                      else
+                          echo "Build and tests passed. Re-run with **publish** enabled to publish to npm."
+                      fi
+                  } >> "$GITHUB_STEP_SUMMARY"
